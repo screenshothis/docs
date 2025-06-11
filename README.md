@@ -33,7 +33,7 @@ npm install -g mintlify
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/screenshothis/screenshothis-docs.git
+git clone https://github.com/screenshothis/docs.git
 cd screenshothis-docs
 ```
 
