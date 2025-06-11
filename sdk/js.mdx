@@ -1,0 +1,737 @@
+---
+title: 'JavaScript SDK'
+description: 'Complete guide to the official Screenshothis JavaScript SDK'
+---
+
+The official Screenshothis SDK for JavaScript and TypeScript applications, providing type-safe screenshot capture with full IDE support.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm add @screenshothis/sdk
+```
+
+```bash pnpm
+pnpm add @screenshothis/sdk
+```
+
+```bash yarn
+yarn add @screenshothis/sdk
+```
+
+```bash bun
+bun add @screenshothis/sdk
+```
+
+</CodeGroup>
+
+<Info>
+**TypeScript Support**: The SDK includes full TypeScript definitions out of the box. For optimal support, ensure your `tsconfig.json` targets ES2020 or higher.
+</Info>
+
+## Quick Start
+
+<Steps>
+  <Step title="Import the SDK">
+    ```typescript
+    import { Screenshothis } from "@screenshothis/sdk";
+    ```
+  </Step>
+  <Step title="Initialize Client">
+    ```typescript
+    const screenshothis = new Screenshothis();
+    ```
+  </Step>
+  <Step title="Take Your First Screenshot">
+    ```typescript
+    const imageData = await screenshothis.screenshots.take({
+      apiKey: "ss_test_your_api_key_here",
+      url: "https://example.com"
+    });
+    ```
+  </Step>
+</Steps>
+
+## Basic Usage
+
+### Simple Screenshot
+
+```typescript
+import { Screenshothis } from "@screenshothis/sdk";
+
+const screenshothis = new Screenshothis();
+
+async function takeScreenshot() {
+  const imageData = await screenshothis.screenshots.take({
+    apiKey: "ss_test_your_api_key_here",
+    url: "https://github.com"
+  });
+
+  // Save to file (Node.js)
+  const fs = require('fs');
+  fs.writeFileSync('screenshot.jpeg', Buffer.from(imageData));
+
+  // Or display in browser
+  const blob = new Blob([imageData], { type: 'image/jpeg' });
+  const imageUrl = URL.createObjectURL(blob);
+  document.getElementById('screenshot').src = imageUrl;
+}
+```
+
+### With Options
+
+```typescript
+import type { GetV1ScreenshotsTakeRequest } from "@screenshothis/sdk/models/operations";
+
+const result = await screenshothis.screenshots.take({
+  apiKey: "ss_test_your_api_key_here",
+  url: "https://github.com",
+
+  // Image settings
+  format: "png",
+  quality: 90,
+  width: 1920,
+  height: 1080,
+
+  // Content blocking
+  blockAds: true,
+  blockCookieBanners: true,
+  blockTrackers: true,
+  blockResources: ["script", "image"],
+
+  // Browser preferences
+  prefersColorScheme: "dark",
+  prefersReducedMotion: "reduce",
+
+  // Device simulation
+  isMobile: false,
+  isLandscape: true,
+  hasTouch: false,
+  deviceScaleFactor: 2,
+
+  // Advanced options
+  selector: "#main-content",
+  userAgent: "MyApp/1.0",
+  bypassCsp: true
+});
+```
+
+## Tree-Shaking Optimization
+
+For optimal bundle size, use the tree-shakable standalone functions:
+
+```typescript
+import { ScreenshothisCore } from "@screenshothis/sdk/core.js";
+import { screenshotsTake } from "@screenshothis/sdk/funcs/screenshotsTake.js";
+
+// Create one instance to use across your application
+const screenshothis = new ScreenshothisCore();
+
+async function takeScreenshot() {
+  const res = await screenshotsTake(screenshothis, {
+    apiKey: "ss_test_your_api_key_here",
+    url: "https://example.com",
+    format: "webp",
+    quality: 85
+  });
+
+  if (res.ok) {
+    // Success - save the image
+    const fs = require('fs');
+    fs.writeFileSync('screenshot.webp', Buffer.from(res.value));
+  } else {
+    // Handle error
+    console.error("Screenshot failed:", res.error);
+  }
+}
+```
+
+<Tip>
+**Performance Benefit**: Tree-shaking can reduce bundle size by up to 80% compared to the full SDK import.
+</Tip>
+
+## Error Handling
+
+The SDK provides comprehensive error handling with specific error types:
+
+### Basic Error Handling
+
+```typescript
+import { Screenshothis } from "@screenshothis/sdk";
+import * as errors from "@screenshothis/sdk/models/errors";
+
+const screenshothis = new Screenshothis();
+
+try {
+  const imageData = await screenshothis.screenshots.take({
+    apiKey: "ss_test_your_api_key_here",
+    url: "https://example.com"
+  });
+
+  // Save successful screenshot
+  const fs = require('fs');
+  fs.writeFileSync('screenshot.jpeg', Buffer.from(imageData));
+  console.log('Screenshot saved successfully!');
+
+} catch (error) {
+  if (error instanceof errors.ScreenshothisError) {
+    console.log('Error message:', error.message);
+    console.log('Status code:', error.statusCode);
+    console.log('Response body:', error.body);
+    console.log('Response headers:', error.headers);
+
+    // Handle specific error types
+    if (error instanceof errors.ForbiddenError) {
+      console.log('API quota exceeded:', error.data$.error);
+      console.log('Request ID:', error.data$.requestId);
+    }
+  }
+}
+```
+
+### Error Types Reference
+
+| Error Type | Status Code | Description |
+|------------|-------------|-------------|
+| `ForbiddenError` | 403 | API quota exceeded or invalid API key |
+| `InternalServerError` | 500 | Server-side error occurred |
+| `ScreenshothisDefaultError` | 4XX, 5XX | General API errors |
+
+## Advanced Configuration
+
+### Custom Server URL
+
+```typescript
+import { Screenshothis } from "@screenshothis/sdk";
+
+const screenshothis = new Screenshothis({
+  serverURL: "https://api.screenshothis.com"
+});
+```
+
+### Retry Configuration
+
+```typescript
+import { Screenshothis } from "@screenshothis/sdk";
+
+// Global retry configuration
+const screenshothis = new Screenshothis({
+  retryConfig: {
+    strategy: "backoff",
+    backoff: {
+      initialInterval: 1000,
+      maxInterval: 60000,
+      exponent: 1.5,
+      maxElapsedTime: 300000
+    },
+    retryConnectionErrors: true
+  }
+});
+
+// Per-request retry configuration
+const result = await screenshothis.screenshots.take({
+  apiKey: "ss_test_your_api_key_here",
+  url: "https://example.com"
+}, {
+  retries: {
+    strategy: "backoff",
+    backoff: {
+      initialInterval: 500,
+      maxInterval: 10000,
+      exponent: 2,
+      maxElapsedTime: 30000
+    },
+    retryConnectionErrors: false
+  }
+});
+```
+
+### Custom HTTP Client
+
+```typescript
+import { Screenshothis } from "@screenshothis/sdk";
+import { HTTPClient } from "@screenshothis/sdk/lib/http";
+
+const httpClient = new HTTPClient({
+  fetcher: (request) => {
+    return fetch(request);
+  }
+});
+
+// Add request hooks
+httpClient.addHook("beforeRequest", (request) => {
+  const nextRequest = new Request(request, {
+    signal: request.signal || AbortSignal.timeout(5000)
+  });
+
+  nextRequest.headers.set("x-custom-header", "custom value");
+  return nextRequest;
+});
+
+httpClient.addHook("requestError", (error, request) => {
+  console.group("Request Error");
+  console.log("Reason:", `${error}`);
+  console.log("Endpoint:", `${request.method} ${request.url}`);
+  console.groupEnd();
+});
+
+const sdk = new Screenshothis({ httpClient });
+```
+
+## Real-World Examples
+
+### React Component
+
+```tsx
+import React, { useState, useEffect } from 'react';
+import { Screenshothis } from "@screenshothis/sdk";
+import type { GetV1ScreenshotsTakeRequest } from "@screenshothis/sdk/models/operations";
+
+type ScreenshotOptions = Omit<GetV1ScreenshotsTakeRequest, "apiKey" | "url">;
+
+interface ScreenshotCapturerProps {
+  url: string;
+  apiKey: string;
+  options?: ScreenshotOptions;
+}
+
+const ScreenshotCapturer: React.FC<ScreenshotCapturerProps> = ({
+  url,
+  apiKey,
+  options
+}) => {
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const captureScreenshot = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const screenshothis = new Screenshothis();
+      const imageData = await screenshothis.screenshots.take({
+        apiKey,
+        url,
+        format: "webp",
+        quality: 85,
+        ...options
+      });
+
+      const blob = new Blob([imageData], { type: 'image/webp' });
+      const blobUrl = URL.createObjectURL(blob);
+      setScreenshotUrl(blobUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Screenshot failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      // Cleanup blob URL
+      if (screenshotUrl) {
+        URL.revokeObjectURL(screenshotUrl);
+      }
+    };
+  }, [screenshotUrl]);
+
+  return (
+    <div>
+      <button onClick={captureScreenshot} disabled={loading}>
+        {loading ? 'Capturing...' : 'Take Screenshot'}
+      </button>
+
+      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+
+      {screenshotUrl && (
+        <img
+          src={screenshotUrl}
+          alt="Screenshot"
+          style={{ maxWidth: '100%', marginTop: '1rem' }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default ScreenshotCapturer;
+```
+
+### Node.js Batch Processing
+
+```typescript
+import { Screenshothis } from "@screenshothis/sdk";
+import * as fs from 'fs';
+import * as path from 'path';
+
+class ScreenshotBatcher {
+  private screenshothis: Screenshothis;
+
+  constructor(private apiKey: string) {
+    this.screenshothis = new Screenshothis({
+      retryConfig: {
+        strategy: "backoff",
+        backoff: {
+          initialInterval: 1000,
+          maxInterval: 30000,
+          exponent: 2,
+          maxElapsedTime: 120000
+        },
+        retryConnectionErrors: true
+      }
+    });
+  }
+
+  async processUrls(urls: string[], outputDir: string) {
+    // Ensure output directory exists
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const results = await Promise.allSettled(
+      urls.map((url, index) => this.captureScreenshot(url, outputDir, index))
+    );
+
+    const successful = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected').length;
+
+    console.log(`Batch complete: ${successful} successful, ${failed} failed`);
+    return results;
+  }
+
+  private async captureScreenshot(url: string, outputDir: string, index: number) {
+    try {
+      const imageData = await this.screenshothis.screenshots.take({
+        apiKey: this.apiKey,
+        url,
+        format: "png",
+        quality: 90,
+        width: 1920,
+        height: 1080,
+        blockAds: true,
+        prefersColorScheme: "light"
+      });
+
+      const filename = `screenshot-${index + 1}-${Date.now()}.png`;
+      const filepath = path.join(outputDir, filename);
+
+      fs.writeFileSync(filepath, Buffer.from(imageData));
+      console.log(`✅ Saved: ${filename} for ${url}`);
+
+      return { url, filepath, success: true };
+    } catch (error) {
+      console.error(`❌ Failed: ${url} - ${error.message}`);
+      throw error;
+    }
+  }
+}
+
+// Usage
+const batcher = new ScreenshotBatcher("ss_test_your_api_key_here");
+const urls = [
+  "https://github.com",
+  "https://example.com",
+  "https://google.com"
+];
+
+batcher.processUrls(urls, "./screenshots");
+```
+
+### Express.js API
+
+```typescript
+import express from 'express';
+import { Screenshothis } from "@screenshothis/sdk";
+import * as errors from "@screenshothis/sdk/models/errors";
+
+const app = express();
+app.use(express.json());
+
+const screenshothis = new Screenshothis();
+
+app.post('/api/screenshot', async (req, res) => {
+  try {
+    const { url, apiKey, ...options } = req.body;
+
+    if (!url || !apiKey) {
+      return res.status(400).json({
+        error: 'Missing required fields: url and apiKey'
+      });
+    }
+
+    const imageData = await screenshothis.screenshots.take({
+      apiKey,
+      url,
+      format: 'webp',
+      quality: 85,
+      ...options
+    });
+
+    // Set appropriate headers
+    res.set({
+      'Content-Type': 'image/webp',
+      'Content-Length': imageData.length.toString(),
+      'Cache-Control': 'public, max-age=3600'
+    });
+
+    res.send(Buffer.from(imageData));
+
+  } catch (error) {
+    if (error instanceof errors.ForbiddenError) {
+      res.status(403).json({
+        error: 'API quota exceeded',
+        requestId: error.data$.requestId
+      });
+    } else if (error instanceof errors.ScreenshothisError) {
+      res.status(error.statusCode || 500).json({
+        error: error.message,
+        statusCode: error.statusCode
+      });
+    } else {
+      res.status(500).json({
+        error: 'Internal server error'
+      });
+    }
+  }
+});
+
+app.listen(3000, () => {
+  console.log('Screenshot API running on port 3000');
+});
+```
+
+## Type Definitions
+
+### Core Types
+
+```typescript
+import type {
+  GetV1ScreenshotsTakeRequest,
+  GetV1ScreenshotsTakeResponse,
+  Format,
+  PrefersColorScheme,
+  PrefersReducedMotion,
+  BlockResource
+} from "@screenshothis/sdk/models/operations";
+
+// Available image formats
+type Format = "jpeg" | "png" | "webp";
+
+// Color scheme preferences
+type PrefersColorScheme = "light" | "dark";
+
+// Motion preferences
+type PrefersReducedMotion = "no-preference" | "reduce";
+
+// Blockable resource types
+type BlockResource =
+  | "document" | "stylesheet" | "image" | "media"
+  | "font" | "script" | "texttrack" | "xhr"
+  | "fetch" | "prefetch" | "eventsource"
+  | "websocket" | "manifest" | "signedexchange"
+  | "ping" | "cspviolationreport" | "preflight" | "other";
+```
+
+### Request Interface
+
+The complete request interface includes all available options:
+
+```typescript
+interface GetV1ScreenshotsTakeRequest {
+  // Required
+  apiKey: string;
+  url: string;
+
+  // Image settings
+  format?: Format;
+  quality?: number; // 20-100
+  width?: number;
+  height?: number;
+
+  // Device simulation
+  isMobile?: boolean;
+  isLandscape?: boolean;
+  hasTouch?: boolean;
+  deviceScaleFactor?: number;
+
+  // Content blocking
+  blockAds?: boolean;
+  blockCookieBanners?: boolean;
+  blockTrackers?: boolean;
+  blockRequests?: string;
+  blockResources?: BlockResource[];
+
+  // Browser preferences
+  prefersColorScheme?: PrefersColorScheme;
+  prefersReducedMotion?: PrefersReducedMotion;
+
+  // Advanced options
+  selector?: string;
+  isCached?: boolean;
+  cacheTtl?: number;
+  cacheKey?: string;
+  userAgent?: string;
+  headers?: string;
+  cookies?: string;
+  bypassCsp?: boolean;
+}
+```
+
+## Health Check API
+
+The SDK also provides health check endpoints:
+
+```typescript
+import { Screenshothis } from "@screenshothis/sdk";
+
+const screenshothis = new Screenshothis();
+
+// Basic health check
+const health = await screenshothis.health.get();
+console.log(health.status); // "healthy" | "degraded" | "unhealthy"
+
+// Readiness check
+const ready = await screenshothis.health.getReady();
+console.log(ready.status); // "ready"
+
+// Liveness check
+const live = await screenshothis.health.getLive();
+console.log(live.status); // "alive"
+```
+
+### Tree-Shaking Health Checks
+
+```typescript
+import { ScreenshothisCore } from "@screenshothis/sdk/core.js";
+import { healthGet } from "@screenshothis/sdk/funcs/healthGet.js";
+import { healthGetReady } from "@screenshothis/sdk/funcs/healthGetReady.js";
+import { healthGetLive } from "@screenshothis/sdk/funcs/healthGetLive.js";
+
+const screenshothis = new ScreenshothisCore();
+
+const healthRes = await healthGet(screenshothis);
+if (healthRes.ok) {
+  console.log("Service health:", healthRes.value.status);
+}
+
+const readyRes = await healthGetReady(screenshothis);
+if (readyRes.ok) {
+  console.log("Service ready:", readyRes.value.status);
+}
+```
+
+## Best Practices
+
+### 1. API Key Management
+
+```typescript
+// ✅ Client-side usage with domain whitelisting
+const apiKey = "ss_test_your_api_key_here"; // Safe with domain whitelisting
+
+// ✅ Server-side with environment variables
+const apiKey = process.env.SCREENSHOTHIS_API_KEY;
+
+// ✅ For production apps, validate domains in dashboard
+const client = new Screenshothis();
+const result = await client.screenshots.take({
+  apiKey: "ss_live_your_api_key_here", // Restricted to whitelisted domains
+  url: "https://example.com"
+});
+```
+
+<Info>
+**Domain Whitelisting**: API keys can be safely used in client-side applications. Configure allowed domains in your [dashboard](https://screenshothis.com/keys) to restrict where your API key can be used.
+</Info>
+
+### 2. Error Handling
+
+```typescript
+// ✅ Always handle errors gracefully
+try {
+  const imageData = await screenshothis.screenshots.take({
+    apiKey,
+    url: userProvidedUrl
+  });
+  // Success handling
+} catch (error) {
+  if (error instanceof errors.ForbiddenError) {
+    // Handle quota/auth errors
+  } else {
+    // Handle other errors
+  }
+}
+```
+
+### 3. Resource Cleanup
+
+```typescript
+// ✅ Clean up blob URLs in browsers
+const blob = new Blob([imageData], { type: 'image/webp' });
+const imageUrl = URL.createObjectURL(blob);
+
+// Use the URL
+document.getElementById('img').src = imageUrl;
+
+// Clean up when done
+URL.revokeObjectURL(imageUrl);
+```
+
+### 4. Performance Optimization
+
+```typescript
+// ✅ Use tree-shaking for smaller bundles
+import { ScreenshothisCore } from "@screenshothis/sdk/core.js";
+import { screenshotsTake } from "@screenshothis/sdk/funcs/screenshotsTake.js";
+
+// ✅ Reuse client instances
+const screenshothis = new ScreenshothisCore();
+
+// ✅ Use appropriate image formats
+const webpImage = await screenshotsTake(screenshothis, {
+  apiKey,
+  url,
+  format: "webp", // Smaller file size
+  quality: 85     // Good balance of quality/size
+});
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="API Reference"
+    icon="code"
+    href="/api-reference/screenshots"
+  >
+    Explore all available API endpoints and parameters
+  </Card>
+  <Card
+    title="GitHub Repository"
+    icon="github"
+    href="https://github.com/screenshothis/screenshothis-js"
+  >
+    View source code, report issues, or contribute
+  </Card>
+  <Card
+    title="NPM Package"
+    icon="package"
+    href="https://www.npmjs.com/package/@screenshothis/sdk"
+  >
+    Install from NPM or view package details
+  </Card>
+  <Card
+    title="TypeScript Examples"
+    icon="brackets-curly"
+    href="/examples/typescript"
+  >
+    More advanced TypeScript integration examples
+  </Card>
+</CardGroup>
+
+<Note>
+**Need Help?** Join our community or reach out to support for assistance with the SDK.
+</Note>

@@ -1,33 +1,133 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: 'API Reference'
+description: 'Complete API reference for the Screenshothis screenshot service'
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
-
-## Welcome
-
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+The Screenshothis API provides programmatic access to capture high-quality screenshots of websites. Our REST API is designed for simplicity and reliability, supporting multiple image formats, device simulation, and advanced content blocking features.
 
 <Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
+  title="OpenAPI Specification"
+  icon="code"
+  href="https://api.screenshothis.com/openapi"
 >
-  View the OpenAPI specification file
+  View the complete OpenAPI 3.1 specification
 </Card>
+
+## Base URL
+
+All API requests are made to:
+
+```
+https://api.screenshothis.com
+```
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All API endpoints require authentication using API keys passed as query parameters. You can obtain your API key from the [dashboard](https://screenshothis.com/keys).
+
+### API Key Format
+
+- **Test keys**: Start with `ss_test_` for development and testing
+- **Live keys**: Start with `ss_live_` for production use
+
+### Authentication Method
+
+API keys are passed as query parameters in requests:
+
+```bash
+curl "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_your_key&url=https://example.com"
+```
+
+<Info>
+**Domain Whitelisting**: API keys can be safely used in client-side applications thanks to domain whitelisting. Configure allowed domains in your [dashboard](https://screenshothis.com/keys) to restrict where your API key can be used.
+</Info>
+
+## Rate Limits
+
+Rate limiting is enforced per API key to ensure fair usage:
+
+- **Free tier**: 10 requests per minute, 100 screenshots per month
+- **Paid plans**: Higher limits based on your subscription
+
+Rate limit headers are included in all responses:
+
+```
+X-RateLimit-Limit: 10
+X-RateLimit-Remaining: 9
+X-RateLimit-Reset: 1640995200
+```
+
+## Error Responses
+
+The API uses standard HTTP status codes and returns structured error responses:
+
+### Error Format
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+{
+  "error": "Invalid API key",
+  "requestId": "req_123456789"
+}
 ```
+
+### Common Status Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| `200` | Success - Screenshot generated |
+| `400` | Bad Request - Invalid parameters |
+| `403` | Forbidden - Invalid API key or quota exceeded |
+| `429` | Too Many Requests - Rate limit exceeded |
+| `500` | Internal Server Error - Server-side error |
+
+## Response Formats
+
+### Image Response (Default)
+
+By default, the API returns the screenshot image directly as binary data:
+
+```bash
+curl "https://api.screenshothis.com/v1/screenshots/take?api_key=YOUR_KEY&url=https://example.com" \
+  -o screenshot.jpeg
+```
+
+**Content-Type**: `image/jpeg`, `image/png`, or `image/webp` based on the `format` parameter.
+
+## Request Limits
+
+For security and performance, the following limits are enforced:
+
+- **Headers**: Maximum 8KB total size
+- **Cookies**: Maximum 4KB total size
+- **URL length**: Standard browser limits apply
+- **Request timeout**: 30 seconds maximum
+
+## SDKs and Libraries
+
+<CardGroup cols={2}>
+  <Card
+    title="JavaScript"
+    icon="js"
+    href="/sdk/js"
+  >
+    Official SDK with full TypeScript support and tree-shaking
+  </Card>
+  <Card
+    title="GitHub Repository"
+    icon="github"
+    href="https://github.com/screenshothis/screenshothis-js"
+  >
+    View source, report issues, or contribute
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+1. **Sign up** for a free account at [screenshothis.com](https://screenshothis.com/register)
+2. **Create an API key** at [screenshothis.com/keys](https://screenshothis.com/keys)
+3. **Make your first request** using the examples in this documentation
+4. **Explore advanced features** like content blocking and device simulation
+
+<Tip>
+Start with our [Quickstart Guide](/quickstart) for a step-by-step introduction to the API.
+</Tip>

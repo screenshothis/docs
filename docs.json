@@ -14,38 +14,36 @@
                 "language": "en",
                 "groups": [
                     {
-                        "group": "Get Started",
+                        "group": "Getting Started",
                         "pages": [
                             "index",
-                            "quickstart",
-                            "development"
+                            "quickstart"
                         ]
                     },
                     {
-                        "group": "Essentials",
+                        "group": "SDKs",
                         "pages": [
-                            "essentials/markdown",
-                            "essentials/code",
-                            "essentials/images",
-                            "essentials/settings",
-                            "essentials/navigation",
-                            "essentials/reusable-snippets"
+                            "sdk/js"
                         ]
                     },
                     {
-                        "group": "API Documentation",
+                        "group": "Self-Hosting",
                         "pages": [
-                            "api-reference/introduction"
+                            "self-host/index",
+                            "self-host/configuration",
+                            "self-host/deployment",
+                            "self-host/troubleshooting"
                         ]
                     },
                     {
-                        "group": "Screenshots",
+                        "group": "API Reference",
                         "pages": [
+                            "api-reference/introduction",
                             "api-reference/screenshots/take"
                         ]
                     },
                     {
-                        "group": "Health",
+                        "group": "Health & Monitoring",
                         "pages": [
                             "api-reference/health/get",
                             "api-reference/health/get-live",
@@ -58,19 +56,19 @@
         "global": {
             "anchors": [
                 {
-                    "anchor": "Documentation",
-                    "href": "https://mintlify.com/docs",
-                    "icon": "book-open-cover"
+                    "anchor": "GitHub",
+                    "href": "https://github.com/screenshothis/screenshothis",
+                    "icon": "github"
                 },
                 {
-                    "anchor": "Community",
-                    "href": "https://mintlify.com/community",
-                    "icon": "slack"
+                    "anchor": "Dashboard",
+                    "href": "https://screenshothis.com/dashboard",
+                    "icon": "chart-line"
                 },
                 {
-                    "anchor": "Blog",
-                    "href": "https://mintlify.com/blog",
-                    "icon": "newspaper"
+                    "anchor": "Support",
+                    "href": "mailto:support@screenshothis.com",
+                    "icon": "envelope"
                 }
             ]
         }
@@ -82,14 +80,14 @@
     "navbar": {
         "links": [
             {
-                "label": "Support",
-                "href": "mailto:support@screenshothis.com"
+                "label": "API Playground",
+                "href": "https://screenshothis.com/playground"
             }
         ],
         "primary": {
             "type": "button",
-            "label": "Dashboard",
-            "href": "https://screenshothis.com/dashboard"
+            "label": "Get Started",
+            "href": "https://screenshothis.com/register"
         }
     },
     "openapi": "https://api.screenshothis.com/openapi"

@@ -1,66 +1,76 @@
 ---
-title: Introduction
-description: "Welcome to the home of your new documentation"
+title: "Screenshot API for Modern Applications"
+sidebarTitle: "Getting Started"
+description: "Automate web captures and generate visuals instantly."
 ---
 
 <img
-  className="rounded-3xl shadow"
-  src="/images/playground.png"
+  className="block rounded-2xl shadow dark:hidden"
+  src="/images/playground-light.png"
   alt="Playground"
 />
 
-## Setting up
+<img
+  className="hidden rounded-2xl shadow shadow-white/5 dark:block"
+  src="/images/playground-dark.png"
+  alt="Playground"
+/>
 
-The first step to world-class documentation is setting up your editing environments.
+Screenshothis is an **open-source** service that lets you programmatically capture beautiful, high-resolution images of any web page. With a single HTTP request you can generate full-page screenshots, device-specific view-ports, PDFs, or thumbnails—perfect for previews, social cards, reports, or automated testing.
 
-<CardGroup cols={2}>
-  <Card
-    title="Edit Your Docs"
-    icon="pen-to-square"
-    href="https://mintlify.com/docs/quickstart"
-  >
-    Get your docs set up locally for easy development
-  </Card>
-  <Card
-    title="Preview Changes"
-    icon="image"
-    href="https://mintlify.com/docs/development"
-  >
-    Preview your changes before you push to make sure they're perfect
-  </Card>
-</CardGroup>
+## Why Screenshothis?
 
-## Make it yours
+- ⚡️ Lightning-fast Chromium rendering (headless Chrome)
+- 🎨 Automatic high-DPI output up to 4K
+- 📐 Custom viewport, device emulation & full-page support
+- 🛠️ Flexible query parameters for delay, JS injection, dark-mode, and more
+- 🔒 Built-in rate-limiting, CSP-bypass auditing & token authentication
+- 🏗️ Docker-first, stateless architecture that scales horizontally
+- 🆓 100 % API-first & AGPL-3.0 open-source
 
-Update your docs to your brand and add valuable content for the best user conversion.
+> "Take the pain out of screenshots so you can focus on your **product**, not your browser."
 
-<CardGroup cols={2}>
-  <Card
-    title="Customize Style"
-    icon="palette"
-    href="https://mintlify.com/docs/settings/global"
-  >
-    Customize your docs to your company's colors and brands
-  </Card>
-  <Card
-    title="Reference APIs"
-    icon="code"
-    href="https://mintlify.com/docs/api-playground/openapi"
-  >
-    Automatically generate endpoints from an OpenAPI spec
-  </Card>
-  <Card
-    title="Add Components"
-    icon="screwdriver-wrench"
-    href="https://mintlify.com/docs/content/components/accordions"
-  >
-    Build interactive features and designs to guide your users
-  </Card>
-  <Card
-    title="Get Inspiration"
-    icon="stars"
-    href="https://mintlify.com/customers"
-  >
-    Check out our showcase of our favorite documentation
-  </Card>
-</CardGroup>
+## Quick example
+
+```bash
+curl "https://api.screenshothis.com/v1/screenshot?url=https://github.com&device=desktop&fullPage=true"
+```
+
+The API responds with a PNG image (or JSON metadata when `output=json` is requested).
+
+## Typical use-cases
+
+1. Generate social-media preview images (`og:image`) for dynamic pages.
+2. Show live website thumbnails in dashboards, newsletters, or link previews.
+3. Create PDF snapshots of invoices, reports, or documentation.
+4. Visual regression testing in CI pipelines.
+
+## Get started
+
+Ready to integrate screenshots into your application? Simply sign up and start making API calls:
+
+1. **Sign up** for a free account at [screenshothis.com](https://screenshothis.com)
+2. **Get your API key** from the dashboard
+3. **Make your first request** using our simple REST API
+
+```bash
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+  "https://api.screenshothis.com/v1/screenshot?url=https://example.com"
+```
+
+Need more control? Check out our [Self-host](/self-host) guide to run Screenshothis on your own infrastructure.
+
+## Open Source & Community
+
+Screenshothis is **open source** (AGPL-3.0) because we believe in transparency and community-driven development:
+
+- ⭐ **Star us on [GitHub](https://github.com/screenshothis/screenshothis)** to show your support
+- 🐛 **Report issues** or **request features** in our [Issues](https://github.com/screenshothis/screenshothis/issues)
+- 🤝 **Contribute** improvements, bug fixes, or new features
+- 🏠 **Self-host** on your own infrastructure (see our [Self-host guide](/self-host))
+
+By keeping our code open, you can see exactly how your screenshots are generated, contribute enhancements, and even run your own instance if needed.
+
+---
+
+© Screenshothis • AGPL-3.0

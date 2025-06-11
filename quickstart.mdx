@@ -1,97 +1,576 @@
 ---
 title: 'Quickstart'
-description: 'Start building awesome documentation in under 5 minutes'
+description: 'Get started with Screenshothis in under 5 minutes'
 ---
 
-## Setup your development
+# Get Started with Screenshothis
 
-Learn how to update your docs locally and deploy them to the public.
+Ready to start capturing beautiful screenshots? Follow this guide to make your first API call in under 5 minutes.
 
-### Edit and preview
+<Steps>
+  <Step title="Create Your Account">
+    Sign up for a free account at [screenshothis.com](https://screenshothis.com/register) to get started with 100 free screenshots per month.
+  </Step>
+  <Step title="Create Your API Key">
+    Navigate to [API Keys](https://screenshothis.com/keys) and create your first API key. It will start with `ss_test_` for development or `ss_live_` for production.
+  </Step>
+  <Step title="Make Your First Request">
+    Use the API key to capture your first screenshot using any of the methods below.
+  </Step>
+</Steps>
+
+## Your First Screenshot
+
+<Tabs>
+  <Tab title="cURL">
+    The simplest way to test the API:
+
+    ```bash
+    curl -X GET "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_your_api_key_here&url=https://github.com" \
+      -o screenshot.jpeg
+    ```
+
+    <Check>Your screenshot will be saved as `screenshot.jpeg`</Check>
+  </Tab>
+
+  <Tab title="JavaScript">
+    Perfect for web applications and Node.js:
+
+    ```bash
+    npm install @screenshothis/sdk
+    ```
+
+    ```typescript
+    import { Screenshothis } from "@screenshothis/sdk";
+
+    const screenshothis = new Screenshothis();
+
+    const imageData = await screenshothis.screenshots.take({
+      apiKey: "ss_test_your_api_key_here",
+      url: "https://github.com"
+    });
+
+    // Save to file (Node.js)
+    const fs = require('fs');
+    fs.writeFileSync('screenshot.jpeg', Buffer.from(imageData));
+    ```
+
+    <Card title="Complete SDK Guide" icon="arrow-right" href="/sdk-js">
+      For comprehensive documentation including error handling, tree-shaking, React/Vue examples, and all available options
+    </Card>
+  </Tab>
+
+  <Tab title="Python">
+    Ideal for data science and backend services:
+
+    ```python
+    import requests
+
+    response = requests.get(
+        'https://api.screenshothis.com/v1/screenshots/take',
+        params={
+            'api_key': 'ss_test_your_api_key_here',
+            'url': 'https://github.com'
+        }
+    )
+
+    with open('screenshot.jpeg', 'wb') as f:
+        f.write(response.content)
+    ```
+
+    <Check>Screenshot saved to `screenshot.jpeg`</Check>
+  </Tab>
+
+  <Tab title="PHP">
+    Great for WordPress and Laravel integrations:
+
+    ```php
+    <?php
+    $params = http_build_query([
+        'api_key' => 'ss_test_your_api_key_here',
+        'url' => 'https://github.com'
+    ]);
+
+    $url = 'https://api.screenshothis.com/v1/screenshots/take?' . $params;
+    $screenshot = file_get_contents($url);
+    file_put_contents('screenshot.jpeg', $screenshot);
+    ?>
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Options
+
+Customize your screenshots with powerful parameters:
+
+<CodeGroup>
+
+```bash Enhanced cURL
+curl -X GET "https://api.screenshothis.com/v1/screenshots/take" \
+  -G \
+  -d "api_key=ss_test_your_api_key_here" \
+  -d "url=https://github.com" \
+  -d "format=png" \
+  -d "quality=90" \
+  -d "width=1920" \
+  -d "height=1080" \
+  -d "block_ads=true" \
+  -d "prefers_color_scheme=dark"
+```
+
+```typescript Enhanced JavaScript
+import { Screenshothis } from "@screenshothis/sdk";
+
+const screenshothis = new Screenshothis();
+
+const result = await screenshothis.screenshots.take({
+  apiKey: "ss_test_your_api_key_here",
+  url: "https://github.com",
+  format: "png",
+  quality: 90,
+  width: 1920,
+  height: 1080,
+  blockAds: true,
+  prefersColorScheme: "dark"
+});
+
+// Save to file
+const fs = require('fs');
+fs.writeFileSync('screenshot.png', Buffer.from(result));
+```
+
+```python Enhanced Python
+import requests
+
+response = requests.get(
+    'https://api.screenshothis.com/v1/screenshots/take',
+    params={
+        'api_key': 'ss_test_your_api_key_here',
+        'url': 'https://github.com',
+        'format': 'png',
+        'quality': '90',
+        'width': '1920',
+        'height': '1080',
+        'block_ads': 'true',
+        'prefers_color_scheme': 'dark'
+    }
+)
+```
+
+</CodeGroup>
+
+## Response Formats
+
+<Columns cols={2}>
+  <div>
+    ### Image Response (Default)
+    Returns the screenshot image directly:
+
+    ```bash
+    curl "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_your_api_key_here&url=https://github.com" \
+      -o screenshot.jpeg
+    ```
+  </div>
+
+  <div>
+    ### Image Formats
+    Choose from multiple formats:
+
+    ```bash
+    # JPEG (default, smaller file size)
+    curl "...&format=jpeg"
+
+    # PNG (higher quality, transparency support)
+    curl "...&format=png"
+
+    # WebP (modern format, best compression)
+    curl "...&format=webp"
+    ```
+  </div>
+</Columns>
+
+## API Parameters
+
+| Parameter | Description | Default | Options |
+|-----------|-------------|---------|---------|
+| `url` | Website URL to screenshot | **Required** | Any valid URL |
+| `api_key` | Your API key | **Required** | `ss_test_` or `ss_live_` |
+| `width` | Viewport width | `1920` | Pixel value |
+| `height` | Viewport height | `1080` | Pixel value |
+| `format` | Image format | `jpeg` | `jpeg`, `png`, `webp` |
+| `quality` | Image quality (20-100) | `80` | `20` to `100` |
+| `is_mobile` | Mobile device simulation | `false` | `true`, `false` |
+| `block_ads` | Block advertisements | `false` | `true`, `false` |
+| `prefers_color_scheme` | Color scheme preference | `light` | `light`, `dark` |
+
+<Note>
+**Built-in Limits**: Screenshothis enforces an 8KB header size limit and 4KB cookie size limit for security and performance.
+</Note>
+
+## Interactive Testing
+
+<Frame caption="Try the API directly in your browser">
+  <Card
+    title="API Playground"
+    icon="play"
+    href="https://screenshothis.com/playground"
+  >
+    Test different parameters and see results instantly without writing code.
+  </Card>
+</Frame>
+
+### Sample URLs to Test
+
+Try these URLs to see different screenshot results:
+
+- **Landing page**: `https://screenshothis.com`
+- **GitHub profile**: `https://github.com/yourusername`
+- **Documentation**: `https://docs.screenshothis.com`
+- **News site**: `https://news.ycombinator.com`
+
+## Real-World Use Cases
 
 <AccordionGroup>
-  <Accordion icon="github" title="Clone your docs locally">
-    During the onboarding process, we created a repository on your Github with
-    your docs content. You can find this repository on our
-    [dashboard](https://dashboard.mintlify.com). To clone the repository
-    locally, follow these
-    [instructions](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
-    in your terminal.
+  <Accordion title="Social Media Previews" icon="share">
+    Generate dynamic `og:image` tags for better social media sharing:
+
+        ```typescript
+    import { Screenshothis } from "@screenshothis/sdk";
+
+    // Generate preview for blog post
+    const generatePreview = async (blogPostUrl: string, apiKey: string) => {
+      const screenshothis = new Screenshothis();
+
+      const imageData = await screenshothis.screenshots.take({
+        apiKey,
+        url: blogPostUrl,
+        width: 1200,
+        height: 630,
+        format: "jpeg"
+      });
+
+      // Convert to base64 for direct use in HTML
+      const base64 = Buffer.from(imageData).toString('base64');
+      return `data:image/jpeg;base64,${base64}`;
+    };
+
+    // Usage in HTML
+    const previewUrl = await generatePreview("https://myblog.com/post", apiKey);
+    // <meta property="og:image" content="data:image/jpeg;base64,..." />
+    ```
+
+    <Check>Perfect for Twitter, LinkedIn, and Facebook sharing</Check>
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Preview changes">
-    Previewing helps you make sure your changes look as intended. We built a
-    command line interface to render these changes locally. 
-    1. Install the
-    [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview the
-    documentation changes locally with this command: ``` npm i -g mintlify ```
-    2. Run the following command at the root of your documentation (where
-    `docs.json` is): ``` mintlify dev ```
-    <Note>
-      If you’re currently using the legacy ```mint.json``` configuration file, please update the Mintlify CLI:
 
+  <Accordion title="Website Thumbnails" icon="image">
+    Create thumbnails for link previews, portfolios, or dashboards:
 
-      ```npm i -g mintlify@latest```
-      And run the new upgrade command in your docs repository:
+    ```python
+    def create_thumbnail(website_url, api_key):
+        response = requests.get(
+            'https://api.screenshothis.com/v1/screenshots/take',
+            params={
+                'api_key': api_key,
+                'url': website_url,
+                'width': '400',
+                'height': '300',
+                'format': 'webp'
+            }
+        )
+        return response.content
+    ```
 
-      ```mintlify upgrade```
-      You should now be using the new ```docs.json``` configuration file. Feel free to delete the ```mint.json``` file from your repository.
-    </Note>
+    <Tip>Use WebP format for smaller file sizes</Tip>
+  </Accordion>
+
+  <Accordion title="Full Page Screenshots" icon="file-image">
+    Capture full page screenshots for reports, invoices, or documentation:
+
+    ```bash
+    curl "https://api.screenshothis.com/v1/screenshots/take" \
+      -G \
+      -d "api_key=ss_test_your_api_key_here" \
+      -d "url=https://invoice.example.com" \
+      -d "format=png" \
+      -d "width=1920" \
+      -d "height=1080" \
+      -o invoice.png
+    ```
+
+    <Check>Perfect for automated reporting workflows</Check>
+  </Accordion>
+
+  <Accordion title="Visual Testing" icon="bug">
+    Capture screenshots for visual regression testing:
+
+    ```typescript
+    import { Screenshothis } from "@screenshothis/sdk";
+    import * as fs from 'fs';
+
+    const captureForTesting = async (url: string, apiKey: string, testName: string) => {
+      const screenshothis = new Screenshothis();
+
+      const imageData = await screenshothis.screenshots.take({
+        apiKey,
+        url,
+        width: 1920,
+        height: 1080,
+        format: "png"
+      });
+
+      // Save for comparison in your test suite
+      const filename = `screenshots/${testName}-${Date.now()}.png`;
+      fs.writeFileSync(filename, Buffer.from(imageData));
+
+      return { filename, imageData };
+    };
+    ```
+  </Accordion>
+
+  <Accordion title="Error Handling with SDK" icon="shield">
+    Robust error handling using the TypeScript SDK:
+
+    ```typescript
+    import { Screenshothis } from "@screenshothis/sdk";
+    import * as errors from "@screenshothis/sdk/models/errors";
+
+    const screenshothis = new Screenshothis();
+
+    try {
+      const imageData = await screenshothis.screenshots.take({
+        apiKey: "ss_test_your_api_key_here",
+        url: "https://example.com"
+      });
+
+      // Save the screenshot
+      const fs = require('fs');
+      fs.writeFileSync('screenshot.jpeg', Buffer.from(imageData));
+      console.log('Screenshot saved successfully!');
+    } catch (error) {
+      if (error instanceof errors.ScreenshothisError) {
+        console.log(error.message);
+        console.log(error.statusCode);
+
+        if (error instanceof errors.ForbiddenError) {
+          console.log(error.data$.error);
+          console.log(error.data$.requestId);
+        }
+      }
+    }
+    ```
+
+    <Check>TypeScript provides full type safety for error handling</Check>
+  </Accordion>
+
+  <Accordion title="Browser Integration" icon="globe">
+    Using screenshots in web applications:
+
+    ```typescript
+    import { Screenshothis } from "@screenshothis/sdk";
+
+    const screenshothis = new Screenshothis();
+
+    // Create a screenshot preview function
+    const createPreview = async (url: string, apiKey: string) => {
+      try {
+        const imageData = await screenshothis.screenshots.take({
+          apiKey,
+          url,
+          width: 800,
+          height: 600,
+          format: "webp"
+        });
+
+        // Create blob URL for immediate display
+        const blob = new Blob([imageData], { type: 'image/webp' });
+        return URL.createObjectURL(blob);
+      } catch (error) {
+        console.error('Failed to create screenshot:', error);
+        return null;
+      }
+    };
+
+    // Usage in React/Vue/etc
+    const handleScreenshot = async () => {
+      const previewUrl = await createPreview(inputUrl, apiKey);
+      if (previewUrl) {
+        setImageSrc(previewUrl);
+      }
+    };
+    ```
+
+    <Tip>Use WebP format for smaller file sizes in browsers</Tip>
+  </Accordion>
+
+    <Accordion title="Direct URL Rendering (No API Call Needed!)" icon="link">
+    **The simplest approach - construct the URL directly:**
+
+            ```typescript
+    import type { GetV1ScreenshotsTakeRequest } from "@screenshothis/sdk/models/operations";
+
+    // Use SDK's existing type, excluding required fields that are handled separately
+    type ScreenshotOptions = Omit<GetV1ScreenshotsTakeRequest, "apiKey" | "url">;
+
+    // Pure URL construction - no SDK call needed!
+    const buildScreenshotUrl = (
+      url: string,
+      apiKey: string,
+      options?: ScreenshotOptions
+    ): string => {
+      const params = new URLSearchParams({
+        api_key: apiKey,
+        url: url,
+        ...options // All properly typed now!
+      });
+
+      return `https://api.screenshothis.com/v1/screenshots/take?${params}`;
+    };
+
+    // Usage - instant, no async needed!
+    const screenshotUrl = buildScreenshotUrl("https://github.com", apiKey, {
+      format: "png",
+      width: 800,
+      height: 600
+    });
+
+    // Use directly in HTML
+    document.getElementById('myImage').src = screenshotUrl;
+    // Or: <img src={screenshotUrl} alt="Screenshot" />
+    ```
+
+            **React/Vue Component (Zero Loading State!):**
+    ```tsx
+    import type { GetV1ScreenshotsTakeRequest } from "@screenshothis/sdk/models/operations";
+
+    type ScreenshotOptions = Omit<GetV1ScreenshotsTakeRequest, "apiKey" | "url">;
+
+    interface ScreenshotImageProps {
+      url: string;
+      apiKey: string;
+      options?: ScreenshotOptions;
+    }
+
+    const ScreenshotImage = ({ url, apiKey, options }: ScreenshotImageProps) => {
+      const screenshotUrl = buildScreenshotUrl(url, apiKey, {
+        format: "webp",
+        width: 800,
+        height: 600,
+        ...options
+      });
+
+      return <img src={screenshotUrl} alt="Screenshot" loading="lazy" />;
+    };
+
+    // Usage - all SDK types available with IntelliSense!
+    <ScreenshotImage
+      url="https://example.com"
+      apiKey="ss_test_your_key"
+      options={{
+        width: 1200,
+        height: 630,
+        blockAds: true,
+        prefersColorScheme: "dark",
+        selector: "#main"
+      }}
+    />
+    ```
+
+        **Advanced Options (Using SDK Types!):**
+    ```typescript
+    const screenshotUrl = buildScreenshotUrl("https://github.com", apiKey, {
+      // All options from GetV1ScreenshotsTakeRequest are available
+      format: "webp",
+      quality: 90,
+      width: 1920,
+      height: 1080,
+      blockAds: true,
+      blockCookieBanners: true,
+      blockTrackers: true,
+      blockResources: ["script", "image"],
+      prefersColorScheme: "dark",
+      prefersReducedMotion: "reduce",
+      isMobile: false,
+      deviceScaleFactor: 2,
+      selector: "#main-content",
+      userAgent: "MyApp/1.0"
+    });
+    ```
+
+        <Check>**Much more efficient!** The browser fetches the image directly from the API - no intermediate processing needed.</Check>
+
+    <Tip>Uses the SDK's official `GetV1ScreenshotsTakeRequest` type for perfect IntelliSense and type safety</Tip>
   </Accordion>
 </AccordionGroup>
 
-### Deploy your changes
+## Rate Limits & Pricing
 
-<AccordionGroup>
+<CardGroup cols={2}>
+  <Card title="Free Tier" icon="gift">
+    - **100 screenshots/month**
+    - **10 requests/minute**
+    - All formats (JPEG, PNG, WebP)
+    - Ad blocking & privacy features
+  </Card>
 
-<Accordion icon="message-bot" title="Install our Github app">
-  Our Github app automatically deploys your changes to your docs site, so you
-  don't need to manage deployments yourself. You can find the link to install on
-  your [dashboard](https://dashboard.mintlify.com). Once the bot has been
-  successfully installed, there should be a check mark next to the commit hash
-  of the repo.
-</Accordion>
-<Accordion icon="rocket" title="Push your changes">
-  [Commit and push your changes to
-  Git](https://docs.github.com/en/get-started/using-git/pushing-commits-to-a-remote-repository#about-git-push)
-  for your changes to update in your docs site. If you push and don't see that
-  the Github app successfully deployed your changes, you can also manually
-  update your docs through our [dashboard](https://dashboard.mintlify.com).
-</Accordion>
-
-</AccordionGroup>
-
-## Update your docs
-
-Add content directly in your files with MDX syntax and React components. You can use any of our components, or even build your own.
-
-<CardGroup>
-
-<Card title="Add Content With MDX" icon="file" href="/essentials/markdown">
-  Add content to your docs with MDX syntax.
-</Card>
-
-<Card
-  title="Add Code Blocks"
-  icon="square-code"
-  href="/essentials/code"
->
-  Add code directly to your docs with syntax highlighting.
-</Card>
-
-<Card
-  title="Add Images"
-  icon="image"
-  href="/essentials/images"
->
-  Add images to your docs to make them more engaging.
-</Card>
-
-<Card
-  title="Add Custom Components"
-  icon="puzzle-piece"
-  href="/essentials/reusable-snippets"
->
-  Add templates to your docs to make them more reusable.
-</Card>
-
+  <Card title="Pro Plans" icon="rocket" href="https://screenshothis.com/pricing">
+    - **Higher quotas**
+    - **Faster rate limits**
+    - Custom cache settings
+    - Priority processing
+  </Card>
 </CardGroup>
+
+<Info>
+Rate limiting is enforced per-user via built-in `requestLimits` to ensure fair usage and optimal performance for all users.
+</Info>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="JavaScript SDK"
+    icon="code"
+    href="/sdk-js"
+  >
+    Complete SDK guide with React/Vue examples, error handling, and tree-shaking
+  </Card>
+  <Card
+    title="API Reference"
+    icon="brackets-curly"
+    href="/api-reference/introduction"
+  >
+    Explore all available endpoints and advanced parameters
+  </Card>
+  <Card
+    title="Self-Host Guide"
+    icon="server"
+    href="/self-host"
+  >
+    Run Screenshothis on your own infrastructure for full control
+  </Card>
+  <Card
+    title="GitHub Repository"
+    icon="github"
+    href="https://github.com/screenshothis/screenshothis-js"
+  >
+    View SDK source code, report issues, or contribute
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+<Columns cols={3}>
+  <Card title="Documentation" icon="book" href="/api-reference/introduction">
+    Browse our complete API reference and guides
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/screenshothis/screenshothis">
+    View source code, report issues, or contribute
+  </Card>
+  <Card title="Support" icon="envelope" href="mailto:support@screenshothis.com">
+    Get help from our team via email
+  </Card>
+</Columns>
+
+<Warning>
+**Development vs Production**: Remember to use `ss_live_` prefixed API keys for production applications and `ss_test_` for development and testing.
+</Warning>

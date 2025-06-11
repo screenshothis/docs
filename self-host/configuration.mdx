@@ -1,0 +1,343 @@
+---
+title: "Configuration"
+sidebarTitle: "Configuration"
+description: "Comprehensive guide to configuring your self-hosted Screenshothis instance."
+---
+
+# Configuration Guide
+
+This guide covers configuration options and environment variables for your self-hosted Screenshothis instance.
+
+<Note>
+**Source**: This configuration guide is based on the actual environment variables used in the [Screenshothis repository](https://github.com/screenshothis/screenshothis). For the most up-to-date information, always refer to the `.env.example` files in the repository.
+</Note>
+
+## Environment Variables Reference
+
+### Database Configuration
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `DATABASE_URL` | Complete PostgreSQL connection string | - | ✅ |
+| `DATABASE_HOST` | Database host address | `localhost` | ✅ |
+| `DATABASE_PORT` | Database port | `5432` | ✅ |
+| `DATABASE_NAME` | Database name | `screenshothis` | ✅ |
+| `DATABASE_USER` | Database username | - | ✅ |
+| `DATABASE_PASSWORD` | Database password | - | ✅ |
+
+<CodeGroup>
+```bash Development
+DATABASE_URL=postgresql://screenshothis:password@localhost:5432/screenshothis
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=screenshothis
+DATABASE_USER=screenshothis
+DATABASE_PASSWORD=password
+```
+
+```bash Production
+DATABASE_URL=postgresql://user:pass@prod-db.example.com:5432/screenshothis
+DATABASE_HOST=prod-db.example.com
+DATABASE_PORT=5432
+DATABASE_NAME=screenshothis
+DATABASE_USER=production_user
+DATABASE_PASSWORD=secure_production_password
+```
+</CodeGroup>
+
+### Redis Configuration
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `REDIS_URL` | Complete Redis connection string | `redis://localhost:6379` | ✅ |
+| `REDIS_HOST` | Redis host address | `localhost` | - |
+| `REDIS_PORT` | Redis port | `6379` | - |
+| `REDIS_PASSWORD` | Redis password (if required) | - | - |
+
+<CodeGroup>
+```bash Development
+REDIS_URL=redis://localhost:6379
+```
+
+```bash Production
+REDIS_URL=redis://user:password@prod-redis.example.com:6379
+```
+</CodeGroup>
+
+### S3-Compatible Storage
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `AWS_ACCESS_KEY_ID` | S3 access key ID | - | ✅ |
+| `AWS_SECRET_ACCESS_KEY` | S3 secret access key | - | ✅ |
+| `AWS_REGION` | AWS region or storage region | `us-east-1` | ✅ |
+| `AWS_BUCKET` | S3 bucket name | - | ✅ |
+| `AWS_URL` | S3 endpoint URL | - | ✅ |
+| `AWS_ENDPOINT` | S3 endpoint (same as AWS_URL) | - | - |
+| `AWS_USE_PATH_STYLE_ENDPOINT` | Use path-style URLs (for MinIO) | `false` | - |
+
+<CodeGroup>
+```bash AWS S3
+AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+AWS_REGION=us-east-1
+AWS_BUCKET=my-screenshothis-bucket
+AWS_URL=https://s3.us-east-1.amazonaws.com
+AWS_USE_PATH_STYLE_ENDPOINT=false
+```
+
+```bash DigitalOcean Spaces
+AWS_ACCESS_KEY_ID=your_do_spaces_key
+AWS_SECRET_ACCESS_KEY=your_do_spaces_secret
+AWS_REGION=nyc3
+AWS_BUCKET=my-screenshothis-space
+AWS_URL=https://nyc3.digitaloceanspaces.com
+AWS_USE_PATH_STYLE_ENDPOINT=false
+```
+
+```bash Cloudflare R2
+AWS_ACCESS_KEY_ID=your_r2_access_key
+AWS_SECRET_ACCESS_KEY=your_r2_secret_key
+AWS_REGION=auto
+AWS_BUCKET=my-screenshothis-bucket
+AWS_URL=https://your-account-id.r2.cloudflarestorage.com
+AWS_USE_PATH_STYLE_ENDPOINT=false
+```
+
+```bash MinIO (Local Development)
+AWS_ACCESS_KEY_ID=screenshothis-access-key
+AWS_SECRET_ACCESS_KEY=screenshothis-secret-key
+AWS_REGION=us-east-1
+AWS_BUCKET=screenshothis-bucket
+AWS_URL=http://localhost:9000
+AWS_ENDPOINT=http://localhost:9000
+AWS_USE_PATH_STYLE_ENDPOINT=true
+```
+</CodeGroup>
+
+### Application Configuration
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `PORT` | Server port | `3000` | - |
+| `NODE_ENV` | Environment mode | `development` | ✅ |
+
+### Frontend Configuration (`apps/web/.env`)
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `VITE_SERVER_URL` | Backend server URL | `http://localhost:3000` | ✅ |
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth client ID | - | - |
+| `POLAR_ACCESS_TOKEN` | Polar access token | - | - |
+| `POLAR_ENVIRONMENT` | Polar environment | `sandbox` | - |
+
+<CodeGroup>
+```bash Development
+VITE_SERVER_URL="http://localhost:3000"
+VITE_GOOGLE_CLIENT_ID="your_google_client_id.apps.googleusercontent.com"
+POLAR_ACCESS_TOKEN="your_polar_access_token"
+POLAR_ENVIRONMENT="sandbox"
+```
+
+```bash Production
+VITE_SERVER_URL="https://api.yourdomain.com"
+VITE_GOOGLE_CLIENT_ID="your_production_google_client_id.apps.googleusercontent.com"
+POLAR_ACCESS_TOKEN="your_production_polar_access_token"
+POLAR_ENVIRONMENT="production"
+```
+</CodeGroup>
+
+<Note>
+Google OAuth and Polar configurations are optional and only needed if you're using those features in your self-hosted instance.
+</Note>
+
+### Authentication & Security
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `BETTER_AUTH_SECRET` | Authentication secret for Better Auth | - | ✅ |
+| `DEFAULT_API_KEY_PREFIX` | API key prefix for generated keys | `ss_test_` | - |
+
+<Warning>
+**Security Notice**: Use a strong, unique value for `BETTER_AUTH_SECRET` in production. This should be a random, secure string.
+</Warning>
+
+<CodeGroup>
+```bash Development
+BETTER_AUTH_SECRET="your_strong_auth_secret_here"
+DEFAULT_API_KEY_PREFIX="ss_test_"
+```
+
+```bash Production
+BETTER_AUTH_SECRET="super-secure-random-string-for-production"
+DEFAULT_API_KEY_PREFIX="ss_live_"
+```
+</CodeGroup>
+
+### Rate Limiting & Performance
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `RATE_LIMIT_WINDOW_MS` | Rate limit window in milliseconds | `60000` (1 minute) | - |
+| `RATE_LIMIT_MAX_REQUESTS` | Max requests per window | `100` | - |
+| `MAX_CONCURRENT_SCREENSHOTS` | Max concurrent screenshot jobs | `10` | - |
+| `SCREENSHOT_TIMEOUT` | Screenshot timeout in milliseconds | `30000` (30 seconds) | - |
+
+### Screenshot Configuration
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `MAX_SCREENSHOT_WIDTH` | Maximum screenshot width | `3840` | - |
+| `MAX_SCREENSHOT_HEIGHT` | Maximum screenshot height | `2160` | - |
+| `DEFAULT_VIEWPORT_WIDTH` | Default viewport width | `1280` | - |
+| `DEFAULT_VIEWPORT_HEIGHT` | Default viewport height | `720` | - |
+| `MAX_PAGE_LOAD_TIMEOUT` | Page load timeout | `30000` | - |
+
+### Built-in Security & Rate Limits
+
+Screenshothis includes several built-in security features and rate limits that are enforced by the application:
+
+- **Header size limit**: 8 KB (8192 characters) per request
+- **Cookie size limit**: 4 KB (4096 characters) per request
+- **Rate limiting**: Enforced per-user via `requestLimits` (see server schema)
+- **CSP bypass auditing**: Event audit-logged server-side when `bypass_csp=true` is used
+
+<Note>
+These security constraints are built into the application code and ensure reliable performance while mitigating abuse vectors per RFC 7230 and security best practices. Rate limits are managed through the application's `requestLimits` system rather than environment variables.
+</Note>
+
+## Configuration Examples
+
+### Minimal Production Configuration
+
+**Backend (`apps/server/.env`)**:
+```bash
+# Database
+DATABASE_URL="postgresql://user:pass@db.example.com:5432/screenshothis"
+
+# Authentication
+BETTER_AUTH_SECRET="your_strong_auth_secret_here"
+DEFAULT_API_KEY_PREFIX="ss_live_"
+
+# S3 Storage (AWS S3)
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_REGION=us-east-1
+AWS_BUCKET=your-bucket
+AWS_URL=https://s3.us-east-1.amazonaws.com
+
+# Application
+NODE_ENV=production
+PORT=3000
+```
+
+**Frontend (`apps/web/.env`)**:
+```bash
+VITE_SERVER_URL="https://api.yourdomain.com"
+# Optional OAuth and Polar settings...
+```
+
+### High-Performance Configuration
+
+```bash
+# ... base configuration ...
+
+# Performance Tuning
+MAX_CONCURRENT_SCREENSHOTS=20
+SCREENSHOT_TIMEOUT=15000
+RATE_LIMIT_MAX_REQUESTS=1000
+RATE_LIMIT_WINDOW_MS=60000
+
+# Optimized Screenshot Settings
+MAX_SCREENSHOT_WIDTH=1920
+MAX_SCREENSHOT_HEIGHT=1080
+DEFAULT_VIEWPORT_WIDTH=1280
+DEFAULT_VIEWPORT_HEIGHT=720
+```
+
+## Customization Options
+
+### Custom Fonts
+
+Add custom fonts by mounting them in your Docker container:
+
+```dockerfile
+# In your Dockerfile
+COPY ./fonts /usr/share/fonts/custom
+RUN fc-cache -f -v
+```
+
+### Custom Configuration
+
+<Note>
+Check the actual repository for available customization options. The Screenshothis codebase may include additional environment variables for:
+- Custom user agents
+- Webhook configurations
+- Screenshot optimization settings
+- Browser configuration options
+</Note>
+
+## Validation
+
+The application validates all environment variables on startup. Missing required variables will prevent the application from starting.
+
+### Environment Variable Validation
+
+The application validates required environment variables on startup. Check the console output or logs for any missing variables.
+
+```bash
+# Check if the application starts successfully
+pnpm run dev
+
+# View startup logs for validation errors
+docker logs screenshothis
+```
+
+## Docker Configuration
+
+### Using Environment Files
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  screenshothis:
+    image: screenshothis/server
+    env_file:
+      - .env.production
+    ports:
+      - "3000:3000"
+```
+
+### Using Docker Secrets
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  screenshothis:
+    image: screenshothis/server
+    secrets:
+      - better_auth_secret
+      - aws_secret_key
+    environment:
+      DATABASE_URL: postgresql://user:password@postgres:5432/screenshothis
+      BETTER_AUTH_SECRET_FILE: /run/secrets/better_auth_secret
+      AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/aws_secret_key
+      DEFAULT_API_KEY_PREFIX: "ss_live_"
+
+secrets:
+  better_auth_secret:
+    file: ./secrets/better_auth_secret.txt
+  aws_secret_key:
+    file: ./secrets/aws_secret_key.txt
+```
+
+## Next Steps
+
+- [Deployment Guide](/self-host/deployment) - Deploy to production
+- [Troubleshooting](/self-host/troubleshooting) - Common issues and solutions
+
+---
+
+**Need help?** Check our [troubleshooting guide](/self-host/troubleshooting) or [open an issue](https://github.com/screenshothis/screenshothis/issues) on GitHub.

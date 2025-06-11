@@ -1,0 +1,368 @@
+---
+title: "Self-host Screenshothis"
+sidebarTitle: "Self-host"
+description: "Run Screenshothis on your own infrastructure with full control and customization."
+---
+
+# Self-host Screenshothis
+
+Want to run Screenshothis on your own infrastructure? This guide covers everything you need to know to deploy and manage your own instance.
+
+<Warning>
+**Important**: Always refer to the official [Screenshothis repository](https://github.com/screenshothis/screenshothis) for the most up-to-date setup instructions, environment variables, and configuration requirements. The repository README and `.env.example` files contain the definitive setup information.
+</Warning>
+
+<Note>
+**Why self-host?** While we recommend using our hosted service for simplicity and reliability, self-hosting gives you complete control over your data, customization options, and eliminates any external dependencies.
+</Note>
+
+## Project Architecture
+
+Screenshothis is built as a **monorepo** using modern technologies:
+
+- **Backend API** (`apps/server`) — Hono + tRPC API with TypeScript
+- **Frontend Web App** (`apps/web`) — React with TanStack Start and TailwindCSS
+- **Shared Packages** (`packages/*`) — Common schemas, utilities, and types
+- **Database** — PostgreSQL with Drizzle ORM
+- **File Storage** — S3-compatible storage for screenshots
+- **Caching** — Redis for rate limiting and session management
+
+## Technology Stack
+
+| Component | Technology |
+|-----------|------------|
+| **Runtime** | Node.js + TypeScript |
+| **API Framework** | Hono + tRPC |
+| **Frontend** | React + TanStack Start |
+| **Database** | PostgreSQL + Drizzle ORM |
+| **File Storage** | S3-compatible storage (AWS S3, DigitalOcean Spaces, etc.) |
+| **Cache/Sessions** | Redis |
+| **Styling** | TailwindCSS |
+| **Linting/Formatting** | Biome |
+| **Package Manager** | pnpm |
+| **Monorepo** | Turborepo |
+| **Containerization** | Docker + Docker Compose |
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- **Node.js** (v18 or later)
+- **pnpm** package manager
+- **Docker** and **Docker Compose** (for databases)
+- **Git** for cloning the repository
+
+## Quick Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/screenshothis/screenshothis.git
+cd screenshothis
+```
+
+### 2. Install Dependencies
+
+```bash
+pnpm install
+```
+
+### 3. Start Supporting Services
+
+Start PostgreSQL, Redis, and optionally MinIO for local storage testing:
+
+```bash
+docker-compose up -d
+```
+
+This will start:
+- **PostgreSQL** on `localhost:5432`
+- **Redis** on `localhost:6379`
+- **MinIO** on `localhost:9000` (API) and `localhost:9001` (Console) - *for local development only*
+
+### 4. Configure Environment Variables
+
+Copy the example environment files and configure them:
+
+```bash
+# Server environment
+cp apps/server/.env.example apps/server/.env
+
+# Web environment (if needed)
+cp apps/web/.env.example apps/web/.env
+```
+
+### 5. Set Up the Database
+
+Push the database schema and run migrations:
+
+```bash
+pnpm run db:push
+```
+
+### 6. Configure S3-Compatible Storage
+
+**For Local Development (using MinIO):**
+
+1. **Open MinIO console** at http://localhost:9001
+2. **Login with default credentials**:
+   - **Username**: `screenshothis-access-key`
+   - **Password**: `screenshothis-secret-key`
+3. **Create a bucket** named `screenshothis-bucket` (or match your `AWS_BUCKET` env var)
+4. **Verify MinIO is accessible**:
+   - MinIO API: http://localhost:9000
+   - MinIO Console: http://localhost:9001
+
+**For Production:**
+
+Use any S3-compatible storage service:
+- **AWS S3** (recommended)
+- **DigitalOcean Spaces**
+- **Cloudflare R2**
+- **Backblaze B2**
+- Or any other S3-compatible provider
+
+<Note>
+**MinIO is only for local development/testing**. MinIO data will be persisted in a Docker volume named `minio_data`. To manage the local MinIO instance:
+- **Stop MinIO**: `docker-compose down`
+- **View MinIO logs**: `docker-compose logs minio`
+- **Restart MinIO**: `docker-compose restart minio`
+</Note>
+
+### 7. Start the Applications
+
+```bash
+pnpm run dev
+```
+
+This starts both applications:
+- **Web UI**: http://localhost:3001
+- **API Server**: http://localhost:3000
+
+## Environment Configuration
+
+### Server Environment (`apps/server/.env`)
+
+```bash
+# Database Configuration
+DATABASE_URL=postgresql://screenshothis:password@localhost:5432/screenshothis
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=screenshothis
+DATABASE_USER=screenshothis
+DATABASE_PASSWORD=password
+
+# Redis Configuration
+REDIS_URL=redis://localhost:6379
+
+# S3-Compatible Storage Configuration
+# For local development (MinIO):
+AWS_ACCESS_KEY_ID=screenshothis-access-key
+AWS_SECRET_ACCESS_KEY=screenshothis-secret-key
+AWS_REGION=us-east-1
+AWS_BUCKET=screenshothis-bucket
+AWS_URL=http://localhost:9000
+AWS_ENDPOINT=http://localhost:9000
+AWS_USE_PATH_STYLE_ENDPOINT=true
+
+# For production (real S3-compatible service):
+# AWS_ACCESS_KEY_ID=your-actual-access-key
+# AWS_SECRET_ACCESS_KEY=your-actual-secret-key
+# AWS_REGION=us-east-1
+# AWS_BUCKET=your-production-bucket
+# AWS_URL=https://your-s3-endpoint.com
+# AWS_ENDPOINT=https://your-s3-endpoint.com
+# AWS_USE_PATH_STYLE_ENDPOINT=false
+
+# API Configuration
+PORT=3000
+NODE_ENV=development
+
+# Authentication & Security
+JWT_SECRET=your-super-secure-jwt-secret-key-here
+
+# Rate Limiting & Security
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Screenshot Configuration
+SCREENSHOT_TIMEOUT=30000
+MAX_SCREENSHOT_WIDTH=3840
+MAX_SCREENSHOT_HEIGHT=2160
+
+# Request Limits (Security)
+# Header size limit: 8KB (8192 characters)
+# Cookie size limit: 4KB (4096 characters)
+MAX_HEADER_SIZE=8192
+MAX_COOKIE_SIZE=4096
+
+# CSP Bypass Auditing
+# When bypass_csp=true is used, events are audit-logged server-side
+AUDIT_CSP_BYPASS=true
+```
+
+### Web Environment (`apps/web/.env`)
+
+```bash
+# API Configuration
+VITE_API_URL=http://localhost:3000
+
+# Environment
+NODE_ENV=development
+```
+
+## Available Scripts
+
+From the **root directory**:
+
+| Script | Description |
+|--------|-------------|
+| `pnpm install` | Install all dependencies for the monorepo |
+| `pnpm run dev` | Start both web and server in development mode |
+| `pnpm run dev:web` | Start only the web (frontend) application |
+| `pnpm run dev:server` | Start only the server (backend) application |
+| `pnpm run build` | Build all applications for production |
+| `pnpm run check-types` | Run TypeScript type checking across all packages |
+| `pnpm run db:push` | Apply Drizzle schema changes to the database |
+| `pnpm run db:studio` | Open Drizzle Studio to view and manage the database |
+| `pnpm run check` | Run Biome linting and formatting checks |
+| `pnpm run format` | Apply Biome formatting to the codebase |
+| `pnpm run lint` | Run Biome linting checks |
+| `pnpm run lint:fix` | Run Biome linting and attempt to fix issues automatically |
+
+## Production Deployment
+
+### Docker Production Setup
+
+1. **Build production images:**
+```bash
+docker build -f apps/server/Dockerfile -t screenshothis-server .
+docker build -f apps/web/Dockerfile -t screenshothis-web .
+```
+
+2. **Use production environment variables**
+3. **Set up external PostgreSQL and Redis**
+4. **Configure S3-compatible storage** (AWS S3, DigitalOcean Spaces, Cloudflare R2, etc.)
+5. **Configure reverse proxy** (nginx, Traefik, etc.)
+6. **Set up SSL certificates**
+
+### Environment Variables for Production
+
+Ensure these are properly configured for production:
+
+- Use strong, unique passwords and secrets
+- Configure proper database connections
+- **Set up production S3-compatible storage**:
+  - AWS S3 (recommended)
+  - DigitalOcean Spaces
+  - Cloudflare R2
+  - Backblaze B2
+  - Any other S3-compatible provider
+- Configure Redis for production use
+- Set appropriate rate limits and timeouts
+
+## Security Considerations
+
+<Warning>
+When self-hosting, you're responsible for:
+- Keeping dependencies updated
+- Securing your database and Redis instances
+- Configuring proper authentication
+- Setting up SSL/TLS encryption
+- Managing backups and disaster recovery
+- Monitoring and logging
+</Warning>
+
+### Built-in Security Features
+
+Screenshothis includes several security measures that you should be aware of:
+
+- **Request Size Limits**:
+  - Header size limit: 8 KB (8192 characters) per request
+  - Cookie size limit: 4 KB (4096 characters) per request
+- **Rate Limiting**: Screenshot generation is limited via `requestLimits` and enforced per-user
+- **CSP Bypass Auditing**: Every time `bypass_csp=true` is used, the event is audit-logged server-side for security review
+- **Input Validation**: All API inputs are validated using Zod schemas
+
+These constraints ensure reliable performance and mitigate abuse vectors following RFC 7230 and common security best practices.
+
+## Database Management
+
+### View Database with Drizzle Studio
+
+```bash
+pnpm run db:studio
+```
+
+### Database Migrations
+
+The project uses Drizzle ORM for database management:
+
+```bash
+# Push schema changes to database (development)
+pnpm run db:push
+
+# Generate migration files (when schema changes)
+pnpm run db:generate
+
+# Apply migrations to database
+pnpm run db:migrate
+
+# Open Drizzle Studio (database GUI)
+pnpm run db:studio
+```
+
+<Note>
+For development, you typically only need `pnpm run db:push` to apply schema changes directly. Use migrations (`db:generate` and `db:migrate`) for production deployments where you need versioned database changes.
+</Note>
+
+## Troubleshooting
+
+### Common Issues
+
+**Port conflicts:**
+- Change ports in `docker-compose.yml` and update environment variables accordingly
+
+**Database connection errors:**
+- Ensure PostgreSQL container is running: `docker-compose ps`
+- Check database credentials in environment variables
+
+**S3-compatible storage connection errors:**
+- **For local development**: Verify MinIO container is running and accessible
+- Check AWS environment variables match your storage configuration
+- **For local development**: Ensure the bucket exists in MinIO console
+- **For production**: Verify your S3-compatible service credentials and bucket permissions
+
+**Build errors:**
+- Clear node_modules and reinstall: `rm -rf node_modules && pnpm install`
+- Clear Turborepo cache: `rm -rf .turbo`
+- Check TypeScript types: `pnpm run check-types`
+
+### Getting Help
+
+- Check the [GitHub Issues](https://github.com/screenshothis/screenshothis/issues) for common problems
+- Join discussions in the repository
+- Review Docker logs: `docker-compose logs`
+
+## Contributing
+
+Screenshothis is an **open source** project (AGPL-3.0) with **27+ stars** and a growing community. The codebase is primarily **TypeScript** (94.9%) with modern web technologies.
+
+Contributions are welcome! See the [GitHub repository](https://github.com/screenshothis/screenshothis) for:
+
+- **Contributing guidelines** and development workflow
+- **Issue templates** for bug reports and feature requests
+- **Discussion forums** for questions and ideas
+- **Code review process** and coding standards
+
+### Development Guidelines
+
+- Follow the existing code style (Biome handles formatting)
+- Run `pnpm run check` before committing
+- Ensure TypeScript types are correct (`pnpm run check-types`)
+- Test your changes locally with `pnpm run dev`
+- Use Husky pre-commit hooks (configured automatically)
+
+---
+
+**License**: AGPL-3.0 • **Repository**: [github.com/screenshothis/screenshothis](https://github.com/screenshothis/screenshothis)
