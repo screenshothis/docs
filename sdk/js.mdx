@@ -691,11 +691,11 @@ export function useScreenshot(apiKey: string) {
 </Accordion>
 
 <Accordion title="Security considerations" icon="lock">
-- Store API keys securely using environment variables
-- Use domain whitelisting for client-side applications
+- API keys use domain whitelisting—safe to commit to version control
+- Configure allowed domains in your dashboard to control key usage
 - Validate URLs before sending to the API
 - Implement rate limiting in your own applications
-- Consider using test keys for development environments
+- Use HTTPS for all API requests in production
 </Accordion>
 
 <Accordion title="Memory management" icon="cpu">

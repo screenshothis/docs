@@ -5,30 +5,27 @@ description: 'Master the Screenshothis API in under 5 minutes'
 
 # Get your first screenshot
 
-Follow this guide to capture your first screenshot and explore advanced features. You'll go from zero to production-ready integration in under 5 minutes.
+Capture your first screenshot and explore advanced features. You'll go from zero to production-ready integration in under 5 minutes.
 
 <Steps>
   <Step title="Create your account">
-    Sign up for a free account at [screenshothis.com](https://screenshothis.com/register) to get started with 100 free screenshots per month.
+    Sign up for a free account at [screenshothis.com](https://screenshothis.com/register) to get 100 free screenshots per month.
 
     <Check>
-    After registration, you'll be redirected to your dashboard where you can create API keys
+    You'll be redirected to your dashboard immediately after registration
     </Check>
   </Step>
 
   <Step title="Generate your API key">
-    Navigate to [API Keys](https://screenshothis.com/keys) in your dashboard and create your first API key. Choose the appropriate type for your use case:
+    Navigate to [API Keys](https://screenshothis.com/keys) in your dashboard and create your first API key.
 
-    - **Test keys**: Start with `ss_test_` for development and testing
-    - **Live keys**: Start with `ss_live_` for production use
-
-    <Warning>
-    Keep your API keys secure and never commit them to version control. Use environment variables in production.
-    </Warning>
+    <Info>
+    Your API keys use domain whitelisting for security—you can safely commit them to version control. Configure allowed domains in your dashboard to control where your key works.
+    </Info>
   </Step>
 
   <Step title="Make your first request">
-    Test your API key with a simple screenshot request using any of the methods below.
+    Test your API key with a simple screenshot request using any method below.
   </Step>
 </Steps>
 
@@ -36,14 +33,14 @@ Follow this guide to capture your first screenshot and explore advanced features
 
 <Tabs>
   <Tab title="cURL">
-    The simplest way to test the API:
+    The quickest way to test the API:
 
     ```bash
     curl -X GET "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_1234567890abcdef&url=https://github.com" \
       -o screenshot.jpeg
     ```
 
-    <Check>You'll see your screenshot saved as `screenshot.jpeg` in the current directory</Check>
+    <Check>Your screenshot saves as `screenshot.jpeg` in the current directory</Check>
   </Tab>
 
   <Tab title="JavaScript">
@@ -109,7 +106,7 @@ Follow this guide to capture your first screenshot and explore advanced features
         print(f'Screenshot failed: {e}')
     ```
 
-    <Check>You'll see "Screenshot saved successfully!" when the image is saved</Check>
+    <Check>You'll see "Screenshot saved successfully!" when the image saves</Check>
   </Tab>
 
   <Tab title="PHP">
@@ -150,7 +147,7 @@ Follow this guide to capture your first screenshot and explore advanced features
 
 ## Customize your screenshots
 
-Add parameters to control format, size, and behavior:
+Control format, size, and behavior with these parameters:
 
 <CodeGroup>
 
@@ -249,7 +246,7 @@ except requests.exceptions.RequestException as e:
 
 ### Mobile device simulation
 
-Capture screenshots as they would appear on mobile devices:
+See how your website appears on mobile devices:
 
 <CodeGroup>
 
@@ -307,12 +304,12 @@ response = requests.get(
 
 ## API parameters
 
-Configure your screenshots with these parameters:
+Customize your screenshots with these parameters:
 
 ### Required parameters
 
 <ParamField query="api_key" type="string" required>
-Your API key from the dashboard. Test keys start with `ss_test_`, live keys start with `ss_live_`.
+Your API key from the dashboard. Uses domain whitelisting for security—safe to commit to version control.
 </ParamField>
 
 <ParamField query="url" type="string" required>
@@ -397,27 +394,45 @@ Cache time-to-live in seconds when caching is enabled. Range: 3600-31622400 (1 h
 Custom cache key for grouping related screenshots. Use with `is_cached=true`.
 </ParamField>
 
-### Advanced browser settings
+### Content filtering (NEW)
 
-<ParamField query="user_agent" type="string">
-Custom User-Agent string to use for the request. Overrides default browser user agent.
+<ParamField query="block_requests" type="string">
+Block specific URL patterns during page load. One pattern per line, supports wildcards.
+
+```text
+*.doubleclick.net
+*.googletagmanager.com
+*/analytics/*
+```
 </ParamField>
 
+<ParamField query="block_resources" type="array">
+Block specific resource types from loading. Available types: `document`, `stylesheet`, `image`, `media`, `font`, `script`, `texttrack`, `xhr`, `fetch`, `prefetch`, `eventsource`, `websocket`, `manifest`, `signedexchange`, `ping`, `cspviolationreport`, `preflight`, `other`.
+
+```bash
+# Block scripts and stylesheets for faster loading
+-d "block_resources=script,stylesheet"
+```
+</ParamField>
+
+### Advanced browser settings
+
 <ParamField query="headers" type="string">
-Custom HTTP headers. Maximum size: 8KB.
+Custom HTTP headers in `Name: Value` format, one per line. Maximum size: 8KB.
 
 ```text
 Authorization: Bearer token
-Custom-Header: value
+User-Agent: MyBot/1.0
+X-Custom-Header: value
 ```
 </ParamField>
 
 <ParamField query="cookies" type="string">
-Custom cookies. Maximum size: 4KB.
+Custom cookies using Set-Cookie syntax, one per line. Maximum size: 4KB.
 
 ```text
-session_id=abc123; Domain=example.com; Path=/; HttpOnly; Secure
-preferences=dark_mode; Domain=example.com; Path=/; HttpOnly; Secure
+session_id=abc123; Domain=example.com; Path=/; Secure
+user_pref=dark_mode; Max-Age=3600
 ```
 </ParamField>
 
@@ -437,7 +452,7 @@ Bypass Content Security Policy restrictions. Use only when necessary for specifi
 
 ### Image response (default)
 
-By default, you'll receive the screenshot image directly as binary data:
+You receive the screenshot image directly as binary data:
 
 ```bash
 curl "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_1234567890abcdef&url=https://github.com" \
@@ -448,7 +463,7 @@ curl "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_12345678
 
 ### Error responses
 
-When something goes wrong, you'll receive a JSON error response:
+When requests fail, you receive a JSON error response:
 
 ```json
 {

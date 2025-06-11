@@ -17,9 +17,9 @@ description: "Generate beautiful screenshots programmatically with a single API 
 />
 </Frame>
 
-Generate beautiful, high-resolution screenshots of any web page with a single HTTP request. Screenshothis provides lightning-fast Chromium rendering, automatic high-DPI output, and flexible customization options—perfect for social cards, link previews, automated testing, and visual content generation.
+Generate beautiful, high-resolution screenshots of any web page with a single HTTP request. You get lightning-fast Chromium rendering, automatic high-DPI output, and flexible customization options—perfect for social cards, link previews, automated testing, and visual content generation.
 
-## Why choose Screenshothis?
+## Why developers choose Screenshothis
 
 <CardGroup cols={2}>
   <Card title="Lightning Fast" icon="bolt">
@@ -36,9 +36,7 @@ Generate beautiful, high-resolution screenshots of any web page with a single HT
   </Card>
 </CardGroup>
 
-## Quick start
-
-Get your first screenshot in under 2 minutes:
+## Get started in under 2 minutes
 
 <Steps>
 <Step title="Get your API key">
@@ -47,12 +45,12 @@ Sign up for free at [screenshothis.com](https://screenshothis.com/register) and 
 
 <Step title="Make your first request">
 ```bash
-curl "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_your_key&url=https://github.com" \
+curl "https://api.screenshothis.com/v1/screenshots/take?api_key=your_api_key&url=https://github.com" \
   -o screenshot.jpeg
 ```
 
 <Check>
-Your screenshot will be saved as `screenshot.jpeg` in the current directory
+Your screenshot saves as `screenshot.jpeg` in the current directory
 </Check>
 </Step>
 
@@ -62,18 +60,25 @@ Add parameters to control the output:
 ```bash
 curl "https://api.screenshothis.com/v1/screenshots/take" \
   -G \
-  -d "api_key=ss_test_your_key" \
+  -d "api_key=your_api_key" \
   -d "url=https://github.com" \
-  -d "format=png" \
+  -d "format=webp" \
+  -d "quality=90" \
   -d "width=1920" \
   -d "height=1080" \
   -d "block_ads=true" \
-  -o screenshot.png
+  -d "block_cookie_banners=true" \
+  -d "prefers_color_scheme=dark" \
+  -o screenshot.webp
 ```
+
+<Tip>
+Use WebP format for smaller file sizes while maintaining excellent quality
+</Tip>
 </Step>
 </Steps>
 
-## Common use cases
+## Popular use cases
 
 <AccordionGroup>
 <Accordion title="Social media previews" icon="share">
@@ -81,11 +86,13 @@ Generate dynamic `og:image` tags for better social sharing:
 
 ```bash
 curl "https://api.screenshothis.com/v1/screenshots/take" \
-  -d "api_key=ss_test_your_key" \
+  -d "api_key=your_api_key" \
   -d "url=https://yourblog.com/post" \
   -d "width=1200" \
   -d "height=630"
 ```
+
+<Check>Perfect dimensions for Twitter, LinkedIn, and Facebook cards</Check>
 </Accordion>
 
 <Accordion title="Website thumbnails" icon="image">
@@ -93,7 +100,7 @@ Create thumbnails for dashboards, newsletters, or link previews:
 
 ```bash
 curl "https://api.screenshothis.com/v1/screenshots/take" \
-  -d "api_key=ss_test_your_key" \
+  -d "api_key=your_api_key" \
   -d "url=https://example.com" \
   -d "width=400" \
   -d "height=300" \
@@ -106,15 +113,20 @@ Capture screenshots for visual regression testing in CI pipelines:
 
 ```bash
 curl "https://api.screenshothis.com/v1/screenshots/take" \
-  -d "api_key=ss_test_your_key" \
+  -d "api_key=your_api_key" \
   -d "url=https://yourapp.com/component" \
-  -d "selector=#main-component"
+  -d "selector=#main-component" \
+  -d "format=png" \
+  -d "block_resources=script,stylesheet" \
+  -d "prefers_reduced_motion=reduce"
 ```
+
+<Check>Ideal for automated testing and quality assurance workflows</Check>
 </Accordion>
 
 </AccordionGroup>
 
-## Next steps
+## Continue your journey
 
 <CardGroup cols={2}>
   <Card title="Complete quickstart guide" icon="rocket" href="/quickstart">
@@ -131,9 +143,9 @@ curl "https://api.screenshothis.com/v1/screenshots/take" \
   </Card>
 </CardGroup>
 
-## Open source and transparent
+## Open source and community-driven
 
-Screenshothis is **open source** (AGPL-3.0) because we believe in transparency and community-driven development. You can:
+Screenshothis is **open source** (AGPL-3.0) because we believe in transparency and community collaboration. You can:
 
 - ⭐ **Star us on [GitHub](https://github.com/screenshothis/screenshothis)** to show your support
 - 🐛 **Report issues** or **request features** in our [Issues](https://github.com/screenshothis/screenshothis/issues)
@@ -141,7 +153,7 @@ Screenshothis is **open source** (AGPL-3.0) because we believe in transparency a
 - 🏠 **Self-host** on your own infrastructure for complete control
 
 <Info>
-By keeping our code open, you can see exactly how your screenshots are generated, contribute enhancements, and run your own instance if needed.
+By keeping our code open, you can see exactly how your screenshots are generated, contribute enhancements, and run your own instance if needed
 </Info>
 
 ---
