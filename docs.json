@@ -46,10 +46,10 @@
                     {
                         "group": "Endpoint Examples",
                         "pages": [
-                            "api-reference/endpoint/get",
-                            "api-reference/endpoint/create",
-                            "api-reference/endpoint/delete",
-                            "api-reference/endpoint/webhook"
+                            "api-reference/screenshots/take",
+                            "api-reference/health/get",
+                            "api-reference/health/get-live",
+                            "api-reference/health/get-ready"
                         ]
                     }
                 ]
