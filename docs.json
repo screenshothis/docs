@@ -44,9 +44,14 @@
                         ]
                     },
                     {
-                        "group": "Endpoint Examples",
+                        "group": "Screenshots",
                         "pages": [
-                            "api-reference/screenshots/take",
+                            "api-reference/screenshots/take"
+                        ]
+                    },
+                    {
+                        "group": "Health",
+                        "pages": [
                             "api-reference/health/get",
                             "api-reference/health/get-live",
                             "api-reference/health/get-ready"
