@@ -3,19 +3,19 @@ title: 'API Reference'
 description: 'Complete API reference for the Screenshothis screenshot service'
 ---
 
-The Screenshothis API provides programmatic access to capture high-quality screenshots of websites. Our REST API is designed for simplicity and reliability, supporting multiple image formats, device simulation, and advanced content blocking features.
+Use the Screenshothis API to capture high-quality screenshots of websites with a simple REST interface. Our API delivers fast, reliable screenshot generation with extensive customization options and built-in security features.
 
 <Card
   title="OpenAPI Specification"
   icon="code"
   href="https://api.screenshothis.com/openapi"
 >
-  View the complete OpenAPI 3.1 specification
+  View the complete OpenAPI 3.1 specification for automatic client generation
 </Card>
 
 ## Base URL
 
-All API requests are made to:
+Make all API requests to:
 
 ```
 https://api.screenshothis.com
@@ -23,33 +23,66 @@ https://api.screenshothis.com
 
 ## Authentication
 
-All API endpoints require authentication using API keys passed as query parameters. You can obtain your API key from the [dashboard](https://screenshothis.com/keys).
+You'll authenticate using API keys passed as query parameters. Create your API key in the [dashboard](https://screenshothis.com/keys).
 
-### API Key Format
+### API key format
+
+Choose the appropriate key type for your environment:
 
 - **Test keys**: Start with `ss_test_` for development and testing
 - **Live keys**: Start with `ss_live_` for production use
 
-### Authentication Method
+### How to authenticate
 
-API keys are passed as query parameters in requests:
+Add your API key as a query parameter in every request:
 
+<Tabs>
+<Tab title="cURL">
 ```bash
-curl "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_your_key&url=https://example.com"
+curl "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_1234567890abcdef&url=https://example.com"
 ```
+</Tab>
+
+<Tab title="JavaScript">
+```typescript
+const response = await fetch(
+  `https://api.screenshothis.com/v1/screenshots/take?api_key=${apiKey}&url=https://example.com`
+);
+```
+</Tab>
+
+<Tab title="Python">
+```python
+import requests
+
+response = requests.get(
+    'https://api.screenshothis.com/v1/screenshots/take',
+    params={
+        'api_key': 'ss_test_1234567890abcdef',
+        'url': 'https://example.com'
+    }
+)
+```
+</Tab>
+</Tabs>
 
 <Info>
-**Domain Whitelisting**: API keys can be safely used in client-side applications thanks to domain whitelisting. Configure allowed domains in your [dashboard](https://screenshothis.com/keys) to restrict where your API key can be used.
+**Client-side security**: You can safely use API keys in client-side applications thanks to domain whitelisting. Configure allowed domains in your [dashboard](https://screenshothis.com/keys) to restrict where your API key can be used.
 </Info>
 
-## Rate Limits
+## Rate limits
 
-Rate limiting is enforced per API key to ensure fair usage:
+We enforce rate limiting per API key to ensure fair usage and optimal performance:
 
-- **Free tier**: 10 requests per minute, 100 screenshots per month
-- **Paid plans**: Higher limits based on your subscription
+| Plan | Requests per minute | Screenshots per month |
+|------|--------------------|-----------------------|
+| **Free** | 10 | 100 |
+| **Pro** | 60 | 1,000+ |
+| **Enterprise** | Custom | Custom |
 
-Rate limit headers are included in all responses:
+### Rate limit headers
+
+Check your current usage with these response headers:
 
 ```
 X-RateLimit-Limit: 10
@@ -57,77 +90,173 @@ X-RateLimit-Remaining: 9
 X-RateLimit-Reset: 1640995200
 ```
 
-## Error Responses
+<Tip>
+Monitor these headers to implement proper retry logic and avoid hitting rate limits.
+</Tip>
 
-The API uses standard HTTP status codes and returns structured error responses:
+## Error handling
 
-### Error Format
+The API uses standard HTTP status codes and returns structured JSON error responses.
+
+### Error response format
+
+When an error occurs, you'll receive a JSON response with error details:
 
 ```json
 {
-  "error": "Invalid API key",
-  "requestId": "req_123456789"
+  "error": "Invalid API key provided",
+  "requestId": "req_1234567890abcdef"
 }
 ```
 
-### Common Status Codes
+### HTTP status codes
 
-| Status Code | Description |
-|-------------|-------------|
-| `200` | Success - Screenshot generated |
-| `400` | Bad Request - Invalid parameters |
-| `403` | Forbidden - Invalid API key or quota exceeded |
-| `429` | Too Many Requests - Rate limit exceeded |
-| `500` | Internal Server Error - Server-side error |
+| Status Code | Meaning | Example Response |
+|-------------|---------|------------------|
+| `200` | Success | Screenshot image binary data |
+| `400` | Bad Request | Invalid parameters or malformed URL |
+| `403` | Forbidden | Invalid API key or quota exceeded |
+| `429` | Too Many Requests | Rate limit exceeded |
+| `500` | Internal Server Error | Server-side error occurred |
 
-## Response Formats
+### Example error responses
 
-### Image Response (Default)
+<Tabs>
+<Tab title="Invalid API Key">
+```json
+{
+  "error": "Invalid API key provided",
+  "requestId": "req_1234567890abcdef"
+}
+```
+</Tab>
 
-By default, the API returns the screenshot image directly as binary data:
+<Tab title="Quota Exceeded">
+```json
+{
+  "error": "Screenshot quota exceeded for current billing period",
+  "requestId": "req_abcdef1234567890"
+}
+```
+</Tab>
 
-```bash
-curl "https://api.screenshothis.com/v1/screenshots/take?api_key=YOUR_KEY&url=https://example.com" \
+<Tab title="Rate Limited">
+```json
+{
+  "error": "Too many requests. Please wait before retrying.",
+  "requestId": "req_fedcba0987654321"
+}
+```
+</Tab>
+
+<Tab title="Invalid URL">
+```json
+{
+  "error": "Invalid URL provided. Must include protocol (http:// or https://)",
+  "requestId": "req_0123456789abcdef"
+}
+```
+</Tab>
+</Tabs>
+
+<Warning>
+Always include error handling in your applications. Use the `requestId` from error responses when contacting support for faster resolution.
+</Warning>
+
+## Response formats
+
+### Image response (default)
+
+By default, you'll receive the screenshot image directly as binary data:
+
+<RequestExample>
+```bash cURL
+curl "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_1234567890abcdef&url=https://example.com" \
   -o screenshot.jpeg
 ```
+</RequestExample>
 
-**Content-Type**: `image/jpeg`, `image/png`, or `image/webp` based on the `format` parameter.
+<ResponseExample>
+```
+HTTP/1.1 200 OK
+Content-Type: image/jpeg
+Content-Length: 245760
+Cache-Control: public, max-age=3600
 
-## Request Limits
+[Binary image data]
+```
+</ResponseExample>
 
-For security and performance, the following limits are enforced:
+The `Content-Type` header will match your requested format:
+- `image/jpeg` for JPEG format
+- `image/png` for PNG format
+- `image/webp` for WebP format
 
-- **Headers**: Maximum 8KB total size
-- **Cookies**: Maximum 4KB total size
-- **URL length**: Standard browser limits apply
-- **Request timeout**: 30 seconds maximum
+## Request limits
 
-## SDKs and Libraries
+We enforce these limits for security and performance:
+
+<ParamField path="headers" type="limit" default="8KB">
+Maximum total size of HTTP headers per request
+</ParamField>
+
+<ParamField path="cookies" type="limit" default="4KB">
+Maximum total size of cookies per request
+</ParamField>
+
+<ParamField path="timeout" type="limit" default="30 seconds">
+Maximum time allowed for screenshot generation
+</ParamField>
+
+<ParamField path="url_length" type="limit" default="2048 characters">
+Maximum URL length following standard browser limits
+</ParamField>
+
+<Note>
+These limits ensure optimal performance and prevent abuse while supporting the vast majority of legitimate use cases.
+</Note>
+
+## SDKs and tools
 
 <CardGroup cols={2}>
   <Card
-    title="JavaScript"
+    title="JavaScript SDK"
     icon="js"
     href="/sdk/js"
   >
-    Official SDK with full TypeScript support and tree-shaking
+    Official TypeScript SDK with full type safety, error handling, and tree-shaking support
   </Card>
   <Card
     title="GitHub Repository"
     icon="github"
     href="https://github.com/screenshothis/screenshothis-js"
   >
-    View source, report issues, or contribute
+    View source code, report issues, or contribute to the JavaScript SDK
   </Card>
 </CardGroup>
 
-## Getting Started
+## Getting started
 
-1. **Sign up** for a free account at [screenshothis.com](https://screenshothis.com/register)
-2. **Create an API key** at [screenshothis.com/keys](https://screenshothis.com/keys)
-3. **Make your first request** using the examples in this documentation
-4. **Explore advanced features** like content blocking and device simulation
+Ready to start capturing screenshots? Follow these steps:
+
+<Steps>
+<Step title="Sign up for an account">
+Create your free account at [screenshothis.com](https://screenshothis.com/register) to get 100 free screenshots per month.
+</Step>
+
+<Step title="Create an API key">
+Generate your API key at [screenshothis.com/keys](https://screenshothis.com/keys) in your dashboard.
+</Step>
+
+<Step title="Make your first request">
+Use the examples in this documentation to capture your first screenshot.
+</Step>
+
+<Step title="Explore advanced features">
+Learn about content blocking, device simulation, and custom selectors.
+</Step>
+</Steps>
 
 <Tip>
-Start with our [Quickstart Guide](/quickstart) for a step-by-step introduction to the API.
+Start with our [Quickstart Guide](/quickstart) for a complete step-by-step tutorial, then return here for detailed API reference information.
 </Tip>

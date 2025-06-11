@@ -1,32 +1,84 @@
 ---
 title: "Configuration"
 sidebarTitle: "Configuration"
-description: "Comprehensive guide to configuring your self-hosted Screenshothis instance."
+description: "Learn how to configure your self-hosted Screenshothis instance with all available options."
 ---
 
-# Configuration Guide
+# Configuration guide
 
-This guide covers configuration options and environment variables for your self-hosted Screenshothis instance.
+Configure your self-hosted Screenshothis instance with the right environment variables and settings for your deployment. This guide covers everything from basic setup to advanced production configurations.
 
 <Note>
-**Source**: This configuration guide is based on the actual environment variables used in the [Screenshothis repository](https://github.com/screenshothis/screenshothis). For the most up-to-date information, always refer to the `.env.example` files in the repository.
+**Always check the source**: Refer to the [Screenshothis repository](https://github.com/screenshothis/screenshothis) `.env.example` files for the most up-to-date configuration options. This guide is based on the actual environment variables used in the codebase.
 </Note>
 
-## Environment Variables Reference
+## Quick configuration
 
-### Database Configuration
+Start with this minimal setup and expand as needed:
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `DATABASE_URL` | Complete PostgreSQL connection string | - | ✅ |
-| `DATABASE_HOST` | Database host address | `localhost` | ✅ |
-| `DATABASE_PORT` | Database port | `5432` | ✅ |
-| `DATABASE_NAME` | Database name | `screenshothis` | ✅ |
-| `DATABASE_USER` | Database username | - | ✅ |
-| `DATABASE_PASSWORD` | Database password | - | ✅ |
+<Steps>
+<Step title="Set up database connection">
+Configure PostgreSQL connection details in your `apps/server/.env` file.
+</Step>
 
-<CodeGroup>
-```bash Development
+<Step title="Configure storage">
+Set up S3-compatible storage credentials for screenshot storage.
+</Step>
+
+<Step title="Add authentication secrets">
+Generate secure secrets for user authentication and API keys.
+</Step>
+
+<Step title="Customize performance settings">
+Adjust rate limits, timeouts, and screenshot quality settings.
+</Step>
+</Steps>
+
+## Database configuration
+
+Configure your PostgreSQL database connection:
+
+<ParamField path="DATABASE_URL" type="string" required>
+Complete PostgreSQL connection string. This is the primary database configuration.
+
+```bash
+# Format: postgresql://username:password@host:port/database
+DATABASE_URL=postgresql://screenshothis:password@localhost:5432/screenshothis
+```
+</ParamField>
+
+<ParamField path="DATABASE_HOST" type="string" required>
+Database server hostname or IP address.
+
+```bash
+DATABASE_HOST=localhost  # Development
+DATABASE_HOST=prod-db.example.com  # Production
+```
+</ParamField>
+
+<ParamField path="DATABASE_PORT" type="integer" default="5432">
+PostgreSQL server port.
+</ParamField>
+
+<ParamField path="DATABASE_NAME" type="string" required>
+Name of the Screenshothis database.
+
+```bash
+DATABASE_NAME=screenshothis
+```
+</ParamField>
+
+<ParamField path="DATABASE_USER" type="string" required>
+Database username for connections.
+</ParamField>
+
+<ParamField path="DATABASE_PASSWORD" type="string" required>
+Database password for the specified user.
+</ParamField>
+
+<Tabs>
+<Tab title="Development">
+```bash
 DATABASE_URL=postgresql://screenshothis:password@localhost:5432/screenshothis
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
@@ -34,50 +86,85 @@ DATABASE_NAME=screenshothis
 DATABASE_USER=screenshothis
 DATABASE_PASSWORD=password
 ```
+</Tab>
 
-```bash Production
-DATABASE_URL=postgresql://user:pass@prod-db.example.com:5432/screenshothis
+<Tab title="Production">
+```bash
+DATABASE_URL=postgresql://user:secure_pass@prod-db.example.com:5432/screenshothis
 DATABASE_HOST=prod-db.example.com
 DATABASE_PORT=5432
 DATABASE_NAME=screenshothis
 DATABASE_USER=production_user
 DATABASE_PASSWORD=secure_production_password
 ```
-</CodeGroup>
+</Tab>
+</Tabs>
 
-### Redis Configuration
+## Redis configuration
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `REDIS_URL` | Complete Redis connection string | `redis://localhost:6379` | ✅ |
-| `REDIS_HOST` | Redis host address | `localhost` | - |
-| `REDIS_PORT` | Redis port | `6379` | - |
-| `REDIS_PASSWORD` | Redis password (if required) | - | - |
+Configure Redis for caching and session management:
 
-<CodeGroup>
-```bash Development
+<ParamField path="REDIS_URL" type="string" required>
+Complete Redis connection string. This is the primary Redis configuration.
+
+```bash
+# Development
 REDIS_URL=redis://localhost:6379
-```
 
-```bash Production
+# Production with authentication
 REDIS_URL=redis://user:password@prod-redis.example.com:6379
 ```
-</CodeGroup>
+</ParamField>
 
-### S3-Compatible Storage
+<ParamField path="REDIS_HOST" type="string" default="localhost">
+Redis server hostname (optional if using REDIS_URL).
+</ParamField>
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `AWS_ACCESS_KEY_ID` | S3 access key ID | - | ✅ |
-| `AWS_SECRET_ACCESS_KEY` | S3 secret access key | - | ✅ |
-| `AWS_REGION` | AWS region or storage region | `us-east-1` | ✅ |
-| `AWS_BUCKET` | S3 bucket name | - | ✅ |
-| `AWS_URL` | S3 endpoint URL | - | ✅ |
-| `AWS_ENDPOINT` | S3 endpoint (same as AWS_URL) | - | - |
-| `AWS_USE_PATH_STYLE_ENDPOINT` | Use path-style URLs (for MinIO) | `false` | - |
+<ParamField path="REDIS_PORT" type="integer" default="6379">
+Redis server port (optional if using REDIS_URL).
+</ParamField>
 
-<CodeGroup>
-```bash AWS S3
+<ParamField path="REDIS_PASSWORD" type="string">
+Redis password if authentication is required.
+</ParamField>
+
+## S3-compatible storage
+
+Configure storage for screenshots using any S3-compatible service:
+
+<ParamField path="AWS_ACCESS_KEY_ID" type="string" required>
+Access key ID for your S3-compatible storage service.
+</ParamField>
+
+<ParamField path="AWS_SECRET_ACCESS_KEY" type="string" required>
+Secret access key for your S3-compatible storage service.
+</ParamField>
+
+<ParamField path="AWS_REGION" type="string" required>
+Storage region. Use `auto` for Cloudflare R2, or the appropriate region for your service.
+</ParamField>
+
+<ParamField path="AWS_BUCKET" type="string" required>
+Name of the bucket where screenshots will be stored.
+</ParamField>
+
+<ParamField path="AWS_URL" type="string" required>
+Complete endpoint URL for your S3-compatible service.
+</ParamField>
+
+<ParamField path="AWS_ENDPOINT" type="string">
+S3 endpoint URL (usually same as AWS_URL).
+</ParamField>
+
+<ParamField path="AWS_USE_PATH_STYLE_ENDPOINT" type="boolean" default="false">
+Use path-style URLs instead of virtual-hosted style. Set to `true` for MinIO and some other services.
+</ParamField>
+
+### Storage provider examples
+
+<Tabs>
+<Tab title="AWS S3">
+```bash
 AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 AWS_REGION=us-east-1
@@ -85,8 +172,10 @@ AWS_BUCKET=my-screenshothis-bucket
 AWS_URL=https://s3.us-east-1.amazonaws.com
 AWS_USE_PATH_STYLE_ENDPOINT=false
 ```
+</Tab>
 
-```bash DigitalOcean Spaces
+<Tab title="DigitalOcean Spaces">
+```bash
 AWS_ACCESS_KEY_ID=your_do_spaces_key
 AWS_SECRET_ACCESS_KEY=your_do_spaces_secret
 AWS_REGION=nyc3
@@ -94,8 +183,10 @@ AWS_BUCKET=my-screenshothis-space
 AWS_URL=https://nyc3.digitaloceanspaces.com
 AWS_USE_PATH_STYLE_ENDPOINT=false
 ```
+</Tab>
 
-```bash Cloudflare R2
+<Tab title="Cloudflare R2">
+```bash
 AWS_ACCESS_KEY_ID=your_r2_access_key
 AWS_SECRET_ACCESS_KEY=your_r2_secret_key
 AWS_REGION=auto
@@ -103,8 +194,10 @@ AWS_BUCKET=my-screenshothis-bucket
 AWS_URL=https://your-account-id.r2.cloudflarestorage.com
 AWS_USE_PATH_STYLE_ENDPOINT=false
 ```
+</Tab>
 
-```bash MinIO (Local Development)
+<Tab title="MinIO (Local)">
+```bash
 AWS_ACCESS_KEY_ID=screenshothis-access-key
 AWS_SECRET_ACCESS_KEY=screenshothis-secret-key
 AWS_REGION=us-east-1
@@ -113,231 +206,404 @@ AWS_URL=http://localhost:9000
 AWS_ENDPOINT=http://localhost:9000
 AWS_USE_PATH_STYLE_ENDPOINT=true
 ```
-</CodeGroup>
+</Tab>
+</Tabs>
 
-### Application Configuration
+<Tip>
+For production, we recommend AWS S3 for reliability, or DigitalOcean Spaces for cost-effectiveness. Cloudflare R2 offers excellent performance and free egress.
+</Tip>
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `PORT` | Server port | `3000` | - |
-| `NODE_ENV` | Environment mode | `development` | ✅ |
+## Application settings
 
-### Frontend Configuration (`apps/web/.env`)
+Configure basic application behavior:
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `VITE_SERVER_URL` | Backend server URL | `http://localhost:3000` | ✅ |
-| `VITE_GOOGLE_CLIENT_ID` | Google OAuth client ID | - | - |
-| `POLAR_ACCESS_TOKEN` | Polar access token | - | - |
-| `POLAR_ENVIRONMENT` | Polar environment | `sandbox` | - |
+<ParamField path="PORT" type="integer" default="3000">
+Port number for the server to listen on.
+</ParamField>
 
-<CodeGroup>
-```bash Development
-VITE_SERVER_URL="http://localhost:3000"
-VITE_GOOGLE_CLIENT_ID="your_google_client_id.apps.googleusercontent.com"
-POLAR_ACCESS_TOKEN="your_polar_access_token"
-POLAR_ENVIRONMENT="sandbox"
+<ParamField path="NODE_ENV" type="string" required>
+Environment mode. Use `development` for local work, `production` for live deployments.
+
+```bash
+NODE_ENV=development  # Development
+NODE_ENV=production   # Production
 ```
+</ParamField>
 
-```bash Production
-VITE_SERVER_URL="https://api.yourdomain.com"
-VITE_GOOGLE_CLIENT_ID="your_production_google_client_id.apps.googleusercontent.com"
-POLAR_ACCESS_TOKEN="your_production_polar_access_token"
-POLAR_ENVIRONMENT="production"
+## Authentication and security
+
+Configure authentication and API key generation:
+
+<ParamField path="BETTER_AUTH_SECRET" type="string" required>
+Secret key for Better Auth authentication system. Must be a strong, random string.
+
+Generate a secure secret:
+```bash
+openssl rand -base64 32
 ```
-</CodeGroup>
+</ParamField>
 
-<Note>
-Google OAuth and Polar configurations are optional and only needed if you're using those features in your self-hosted instance.
-</Note>
+<ParamField path="DEFAULT_API_KEY_PREFIX" type="string" default="ss">
+Prefix for generated API keys. Use different prefixes for different environments.
 
-### Authentication & Security
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `BETTER_AUTH_SECRET` | Authentication secret for Better Auth | - | ✅ |
-| `DEFAULT_API_KEY_PREFIX` | API key prefix for generated keys | `ss_test_` | - |
+```bash
+DEFAULT_API_KEY_PREFIX=ss_test   # Development
+DEFAULT_API_KEY_PREFIX=ss_live   # Production
+```
+</ParamField>
 
 <Warning>
-**Security Notice**: Use a strong, unique value for `BETTER_AUTH_SECRET` in production. This should be a random, secure string.
+**Production security**: Always use a strong, unique `BETTER_AUTH_SECRET` for production. Never reuse secrets across environments or share them in version control.
 </Warning>
 
-<CodeGroup>
-```bash Development
-BETTER_AUTH_SECRET="your_strong_auth_secret_here"
-DEFAULT_API_KEY_PREFIX="ss_test_"
+## Frontend configuration
+
+Configure the web interface in `apps/web/.env`:
+
+<ParamField path="VITE_SERVER_URL" type="string" required>
+URL of your backend API server.
+
+```bash
+VITE_SERVER_URL=http://localhost:3000      # Development
+VITE_SERVER_URL=https://api.yourdomain.com # Production
 ```
+</ParamField>
 
-```bash Production
-BETTER_AUTH_SECRET="super-secure-random-string-for-production"
-DEFAULT_API_KEY_PREFIX="ss_live_"
-```
-</CodeGroup>
+<ParamField path="VITE_GOOGLE_CLIENT_ID" type="string">
+Google OAuth client ID for Google authentication (optional).
+</ParamField>
 
-### Rate Limiting & Performance
+<ParamField path="POLAR_ACCESS_TOKEN" type="string">
+Polar access token for billing integration (optional).
+</ParamField>
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `RATE_LIMIT_WINDOW_MS` | Rate limit window in milliseconds | `60000` (1 minute) | - |
-| `RATE_LIMIT_MAX_REQUESTS` | Max requests per window | `100` | - |
-| `MAX_CONCURRENT_SCREENSHOTS` | Max concurrent screenshot jobs | `10` | - |
-| `SCREENSHOT_TIMEOUT` | Screenshot timeout in milliseconds | `30000` (30 seconds) | - |
+<ParamField path="POLAR_ENVIRONMENT" type="string" default="sandbox">
+Polar environment. Use `sandbox` for testing, `production` for live billing.
+</ParamField>
 
-### Screenshot Configuration
+<Info>
+Google OAuth and Polar configurations are optional. You only need them if you want to offer Google sign-in or integrate with Polar for billing.
+</Info>
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `MAX_SCREENSHOT_WIDTH` | Maximum screenshot width | `3840` | - |
-| `MAX_SCREENSHOT_HEIGHT` | Maximum screenshot height | `2160` | - |
-| `DEFAULT_VIEWPORT_WIDTH` | Default viewport width | `1280` | - |
-| `DEFAULT_VIEWPORT_HEIGHT` | Default viewport height | `720` | - |
-| `MAX_PAGE_LOAD_TIMEOUT` | Page load timeout | `30000` | - |
+## Performance and limits
 
-### Built-in Security & Rate Limits
+Configure rate limiting and screenshot performance:
 
-Screenshothis includes several built-in security features and rate limits that are enforced by the application:
+<ParamField path="RATE_LIMIT_WINDOW_MS" type="integer" default="60000">
+Rate limit window duration in milliseconds. Default is 1 minute (60000ms).
+</ParamField>
 
-- **Header size limit**: 8 KB (8192 characters) per request
-- **Cookie size limit**: 4 KB (4096 characters) per request
-- **Rate limiting**: Enforced per-user via `requestLimits` (see server schema)
-- **CSP bypass auditing**: Event audit-logged server-side when `bypass_csp=true` is used
+<ParamField path="RATE_LIMIT_MAX_REQUESTS" type="integer" default="100">
+Maximum requests allowed per rate limit window.
+</ParamField>
 
-<Note>
-These security constraints are built into the application code and ensure reliable performance while mitigating abuse vectors per RFC 7230 and security best practices. Rate limits are managed through the application's `requestLimits` system rather than environment variables.
-</Note>
+<ParamField path="MAX_CONCURRENT_SCREENSHOTS" type="integer" default="10">
+Maximum number of screenshots that can be processed simultaneously.
+</ParamField>
 
-## Configuration Examples
+<ParamField path="SCREENSHOT_TIMEOUT" type="integer" default="30000">
+Screenshot generation timeout in milliseconds. Default is 30 seconds.
+</ParamField>
 
-### Minimal Production Configuration
+## Screenshot settings
 
-**Backend (`apps/server/.env`)**:
+Configure screenshot generation limits and defaults:
+
+<ParamField path="MAX_SCREENSHOT_WIDTH" type="integer" default="3840">
+Maximum allowed screenshot width in pixels.
+</ParamField>
+
+<ParamField path="MAX_SCREENSHOT_HEIGHT" type="integer" default="2160">
+Maximum allowed screenshot height in pixels.
+</ParamField>
+
+<ParamField path="DEFAULT_VIEWPORT_WIDTH" type="integer" default="1280">
+Default viewport width when not specified in requests.
+</ParamField>
+
+<ParamField path="DEFAULT_VIEWPORT_HEIGHT" type="integer" default="720">
+Default viewport height when not specified in requests.
+</ParamField>
+
+<ParamField path="MAX_PAGE_LOAD_TIMEOUT" type="integer" default="30000">
+Maximum time to wait for page loading in milliseconds.
+</ParamField>
+
+## Built-in security features
+
+Screenshothis includes several built-in security measures that you should be aware of:
+
+<AccordionGroup>
+<Accordion title="Request size limits" icon="shield">
+**Automatically enforced limits:**
+- Header size limit: 8 KB (8192 characters) per request
+- Cookie size limit: 4 KB (4096 characters) per request
+- URL length limit: Standard browser limits (2048 characters)
+
+These limits prevent abuse and ensure consistent performance across all deployments.
+</Accordion>
+
+<Accordion title="Rate limiting system" icon="clock">
+**Built-in rate limiting:**
+- Per-user rate limiting via internal `requestLimits` system
+- Configurable via `RATE_LIMIT_*` environment variables
+- Automatic abuse protection
+
+The system tracks usage per API key and enforces limits automatically.
+</Accordion>
+
+<Accordion title="CSP bypass auditing" icon="eye">
+**Security auditing:**
+- Every use of `bypass_csp=true` is logged server-side
+- Helps identify potential security issues
+- Enables compliance and security reviews
+
+Monitor these logs regularly in production environments.
+</Accordion>
+
+<Accordion title="Input validation" icon="check-circle">
+**Automatic validation:**
+- All API inputs validated using Zod schemas
+- URL validation prevents malicious requests
+- Parameter validation ensures data integrity
+
+Input validation helps prevent injection attacks and maintains system stability.
+</Accordion>
+</AccordionGroup>
+
+## Complete configuration examples
+
+### Minimal production setup
+
+**Backend configuration** (`apps/server/.env`):
+
 ```bash
 # Database
-DATABASE_URL="postgresql://user:pass@db.example.com:5432/screenshothis"
+DATABASE_URL=postgresql://user:secure_pass@db.example.com:5432/screenshothis
 
-# Authentication
-BETTER_AUTH_SECRET="your_strong_auth_secret_here"
-DEFAULT_API_KEY_PREFIX="ss_live_"
+# Redis
+REDIS_URL=redis://user:password@redis.example.com:6379
 
-# S3 Storage (AWS S3)
+# Storage (AWS S3)
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
 AWS_REGION=us-east-1
-AWS_BUCKET=your-bucket
+AWS_BUCKET=your-production-bucket
 AWS_URL=https://s3.us-east-1.amazonaws.com
+
+# Authentication
+BETTER_AUTH_SECRET=your_strong_random_secret_here
+DEFAULT_API_KEY_PREFIX=ss_live
 
 # Application
 NODE_ENV=production
 PORT=3000
 ```
 
-**Frontend (`apps/web/.env`)**:
+**Frontend configuration** (`apps/web/.env`):
+
 ```bash
-VITE_SERVER_URL="https://api.yourdomain.com"
-# Optional OAuth and Polar settings...
+VITE_SERVER_URL=https://api.yourdomain.com
+NODE_ENV=production
 ```
 
-### High-Performance Configuration
+### High-performance production setup
+
+For high-traffic deployments, use these optimized settings:
 
 ```bash
-# ... base configuration ...
+# ... base configuration above ...
 
-# Performance Tuning
+# Performance optimization
 MAX_CONCURRENT_SCREENSHOTS=20
 SCREENSHOT_TIMEOUT=15000
 RATE_LIMIT_MAX_REQUESTS=1000
 RATE_LIMIT_WINDOW_MS=60000
 
-# Optimized Screenshot Settings
+# Optimized screenshot settings
 MAX_SCREENSHOT_WIDTH=1920
 MAX_SCREENSHOT_HEIGHT=1080
 DEFAULT_VIEWPORT_WIDTH=1280
 DEFAULT_VIEWPORT_HEIGHT=720
+MAX_PAGE_LOAD_TIMEOUT=20000
 ```
 
-## Customization Options
+### Development with external services
 
-### Custom Fonts
-
-Add custom fonts by mounting them in your Docker container:
-
-```dockerfile
-# In your Dockerfile
-COPY ./fonts /usr/share/fonts/custom
-RUN fc-cache -f -v
-```
-
-### Custom Configuration
-
-<Note>
-Check the actual repository for available customization options. The Screenshothis codebase may include additional environment variables for:
-- Custom user agents
-- Webhook configurations
-- Screenshot optimization settings
-- Browser configuration options
-</Note>
-
-## Validation
-
-The application validates all environment variables on startup. Missing required variables will prevent the application from starting.
-
-### Environment Variable Validation
-
-The application validates required environment variables on startup. Check the console output or logs for any missing variables.
+For development using cloud services instead of local Docker:
 
 ```bash
-# Check if the application starts successfully
-pnpm run dev
+# Database (managed PostgreSQL)
+DATABASE_URL=postgresql://dev_user:dev_pass@dev-db.provider.com:5432/screenshothis_dev
 
-# View startup logs for validation errors
-docker logs screenshothis
+# Redis (managed Redis)
+REDIS_URL=redis://dev_user:dev_pass@dev-redis.provider.com:6379
+
+# Storage (DigitalOcean Spaces for cost-effective development)
+AWS_ACCESS_KEY_ID=your_dev_spaces_key
+AWS_SECRET_ACCESS_KEY=your_dev_spaces_secret
+AWS_REGION=nyc3
+AWS_BUCKET=screenshothis-dev
+AWS_URL=https://nyc3.digitaloceanspaces.com
+
+# Development authentication
+BETTER_AUTH_SECRET=dev_secret_change_for_production
+DEFAULT_API_KEY_PREFIX=ss_test
+
+# Application
+NODE_ENV=development
+PORT=3000
 ```
 
-## Docker Configuration
+## Docker deployment configuration
 
-### Using Environment Files
+### Using environment files
+
+Organize your configuration using environment files:
 
 ```yaml
 # docker-compose.yml
 version: '3.8'
 services:
-  screenshothis:
+  screenshothis-server:
     image: screenshothis/server
     env_file:
       - .env.production
     ports:
       - "3000:3000"
+    restart: unless-stopped
+
+  screenshothis-web:
+    image: screenshothis/web
+    env_file:
+      - .env.web.production
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
 ```
 
-### Using Docker Secrets
+### Using Docker secrets
+
+For enhanced security in production:
 
 ```yaml
 # docker-compose.yml
 version: '3.8'
 services:
-  screenshothis:
+  screenshothis-server:
     image: screenshothis/server
     secrets:
       - better_auth_secret
       - aws_secret_key
+      - database_password
     environment:
       DATABASE_URL: postgresql://user:password@postgres:5432/screenshothis
       BETTER_AUTH_SECRET_FILE: /run/secrets/better_auth_secret
       AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/aws_secret_key
-      DEFAULT_API_KEY_PREFIX: "ss_live_"
+      DATABASE_PASSWORD_FILE: /run/secrets/database_password
+    ports:
+      - "3000:3000"
 
 secrets:
   better_auth_secret:
     file: ./secrets/better_auth_secret.txt
   aws_secret_key:
     file: ./secrets/aws_secret_key.txt
+  database_password:
+    file: ./secrets/database_password.txt
 ```
 
-## Next Steps
+## Configuration validation
 
-- [Deployment Guide](/self-host/deployment) - Deploy to production
-- [Troubleshooting](/self-host/troubleshooting) - Common issues and solutions
+Validate your configuration before deployment:
 
----
+<Steps>
+<Step title="Check required variables">
+Ensure all required environment variables are set:
 
-**Need help?** Check our [troubleshooting guide](/self-host/troubleshooting) or [open an issue](https://github.com/screenshothis/screenshothis/issues) on GitHub.
+```bash
+# Test configuration by starting the application
+pnpm run dev
+
+# Check for missing variables in the startup logs
+```
+</Step>
+
+<Step title="Test database connection">
+Verify your database connection:
+
+```bash
+# Test database connectivity
+pnpm run db:studio
+
+# Should open Drizzle Studio if connection is successful
+```
+</Step>
+
+<Step title="Validate storage configuration">
+Test your S3-compatible storage:
+
+```bash
+# For MinIO (local development)
+curl http://localhost:9000/minio/health/live
+
+# For production, test with a simple API call
+curl "https://your-api.com/v1/screenshots/take?api_key=test&url=https://example.com"
+```
+</Step>
+
+<Step title="Verify rate limits">
+Test rate limiting behavior with multiple requests to ensure limits are working correctly.
+</Step>
+</Steps>
+
+## Troubleshooting configuration
+
+<AccordionGroup>
+<Accordion title="Application won't start" icon="exclamation-triangle">
+**Common causes:**
+- Missing required environment variables
+- Invalid database connection string
+- Incorrect Redis URL format
+- S3 credentials or bucket access issues
+
+**Solution:** Check the startup logs for specific error messages about missing or invalid configuration.
+</Accordion>
+
+<Accordion title="Database connection errors" icon="database">
+**Common causes:**
+- Incorrect DATABASE_URL format
+- Database server not accessible
+- Wrong credentials
+- Database doesn't exist
+
+**Solution:** Test connection manually: `psql "postgresql://user:pass@host:port/db"`
+</Accordion>
+
+<Accordion title="S3 storage errors" icon="cloud">
+**Common causes:**
+- Invalid credentials
+- Bucket doesn't exist
+- Wrong region configuration
+- Incorrect endpoint URL
+
+**Solution:** Verify bucket exists and credentials have proper permissions (read/write access).
+</Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Deployment Guide" icon="rocket" href="/self-host/deployment">
+    Deploy your configured instance to production with Docker, Kubernetes, or cloud platforms
+  </Card>
+  <Card title="Troubleshooting" icon="life-ring" href="/self-host/troubleshooting">
+    Common issues and solutions for self-hosted deployments
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Complete API documentation for your configured instance
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/screenshothis/screenshothis">
+    View source code and latest configuration options
+  </Card>
+</CardGroup>

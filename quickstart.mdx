@@ -1,36 +1,49 @@
 ---
 title: 'Quickstart'
-description: 'Get started with Screenshothis in under 5 minutes'
+description: 'Master the Screenshothis API in under 5 minutes'
 ---
 
-# Get Started with Screenshothis
+# Get your first screenshot
 
-Ready to start capturing beautiful screenshots? Follow this guide to make your first API call in under 5 minutes.
+Follow this guide to capture your first screenshot and explore advanced features. You'll go from zero to production-ready integration in under 5 minutes.
 
 <Steps>
-  <Step title="Create Your Account">
+  <Step title="Create your account">
     Sign up for a free account at [screenshothis.com](https://screenshothis.com/register) to get started with 100 free screenshots per month.
+
+    <Check>
+    After registration, you'll be redirected to your dashboard where you can create API keys
+    </Check>
   </Step>
-  <Step title="Create Your API Key">
-    Navigate to [API Keys](https://screenshothis.com/keys) and create your first API key. It will start with `ss_test_` for development or `ss_live_` for production.
+
+  <Step title="Generate your API key">
+    Navigate to [API Keys](https://screenshothis.com/keys) in your dashboard and create your first API key. Choose the appropriate type for your use case:
+
+    - **Test keys**: Start with `ss_test_` for development and testing
+    - **Live keys**: Start with `ss_live_` for production use
+
+    <Warning>
+    Keep your API keys secure and never commit them to version control. Use environment variables in production.
+    </Warning>
   </Step>
-  <Step title="Make Your First Request">
-    Use the API key to capture your first screenshot using any of the methods below.
+
+  <Step title="Make your first request">
+    Test your API key with a simple screenshot request using any of the methods below.
   </Step>
 </Steps>
 
-## Your First Screenshot
+## Your first screenshot
 
 <Tabs>
   <Tab title="cURL">
     The simplest way to test the API:
 
     ```bash
-    curl -X GET "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_your_api_key_here&url=https://github.com" \
+    curl -X GET "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_1234567890abcdef&url=https://github.com" \
       -o screenshot.jpeg
     ```
 
-    <Check>Your screenshot will be saved as `screenshot.jpeg`</Check>
+    <Check>You'll see your screenshot saved as `screenshot.jpeg` in the current directory</Check>
   </Tab>
 
   <Tab title="JavaScript">
@@ -45,17 +58,27 @@ Ready to start capturing beautiful screenshots? Follow this guide to make your f
 
     const screenshothis = new Screenshothis();
 
-    const imageData = await screenshothis.screenshots.take({
-      apiKey: "ss_test_your_api_key_here",
-      url: "https://github.com"
-    });
+    async function takeScreenshot() {
+      try {
+        const imageData = await screenshothis.screenshots.take({
+          apiKey: "ss_test_1234567890abcdef",
+          url: "https://github.com"
+        });
 
-    // Save to file (Node.js)
-    const fs = require('fs');
-    fs.writeFileSync('screenshot.jpeg', Buffer.from(imageData));
+        // Save to file (Node.js)
+        const fs = require('fs');
+        fs.writeFileSync('screenshot.jpeg', Buffer.from(imageData));
+
+        console.log('Screenshot saved successfully!');
+      } catch (error) {
+        console.error('Screenshot failed:', error.message);
+      }
+    }
+
+    takeScreenshot();
     ```
 
-    <Card title="Complete SDK Guide" icon="arrow-right" href="/sdk-js">
+    <Card title="Complete SDK Guide" icon="arrow-right" href="/sdk/js">
       For comprehensive documentation including error handling, tree-shaking, React/Vue examples, and all available options
     </Card>
   </Tab>
@@ -66,19 +89,27 @@ Ready to start capturing beautiful screenshots? Follow this guide to make your f
     ```python
     import requests
 
-    response = requests.get(
-        'https://api.screenshothis.com/v1/screenshots/take',
-        params={
-            'api_key': 'ss_test_your_api_key_here',
-            'url': 'https://github.com'
-        }
-    )
+    try:
+        response = requests.get(
+            'https://api.screenshothis.com/v1/screenshots/take',
+            params={
+                'api_key': 'ss_test_1234567890abcdef',
+                'url': 'https://github.com'
+            }
+        )
 
-    with open('screenshot.jpeg', 'wb') as f:
-        f.write(response.content)
+        response.raise_for_status()  # Raise an exception for bad responses
+
+        with open('screenshot.jpeg', 'wb') as f:
+            f.write(response.content)
+
+        print('Screenshot saved successfully!')
+
+    except requests.exceptions.RequestException as e:
+        print(f'Screenshot failed: {e}')
     ```
 
-    <Check>Screenshot saved to `screenshot.jpeg`</Check>
+    <Check>You'll see "Screenshot saved successfully!" when the image is saved</Check>
   </Tab>
 
   <Tab title="PHP">
@@ -86,36 +117,58 @@ Ready to start capturing beautiful screenshots? Follow this guide to make your f
 
     ```php
     <?php
-    $params = http_build_query([
-        'api_key' => 'ss_test_your_api_key_here',
-        'url' => 'https://github.com'
-    ]);
+    try {
+        $params = http_build_query([
+            'api_key' => 'ss_test_1234567890abcdef',
+            'url' => 'https://github.com'
+        ]);
 
-    $url = 'https://api.screenshothis.com/v1/screenshots/take?' . $params;
-    $screenshot = file_get_contents($url);
-    file_put_contents('screenshot.jpeg', $screenshot);
+        $url = 'https://api.screenshothis.com/v1/screenshots/take?' . $params;
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 30
+            ]
+        ]);
+
+        $screenshot = file_get_contents($url, false, $context);
+
+        if ($screenshot === false) {
+            throw new Exception('Failed to capture screenshot');
+        }
+
+        file_put_contents('screenshot.jpeg', $screenshot);
+        echo 'Screenshot saved successfully!';
+
+    } catch (Exception $e) {
+        echo 'Screenshot failed: ' . $e->getMessage();
+    }
     ?>
     ```
   </Tab>
 </Tabs>
 
-## Advanced Options
+## Customize your screenshots
 
-Customize your screenshots with powerful parameters:
+Add parameters to control format, size, and behavior:
 
 <CodeGroup>
 
 ```bash Enhanced cURL
 curl -X GET "https://api.screenshothis.com/v1/screenshots/take" \
   -G \
-  -d "api_key=ss_test_your_api_key_here" \
+  -d "api_key=ss_test_1234567890abcdef" \
   -d "url=https://github.com" \
-  -d "format=png" \
+  -d "format=webp" \
   -d "quality=90" \
   -d "width=1920" \
   -d "height=1080" \
   -d "block_ads=true" \
-  -d "prefers_color_scheme=dark"
+  -d "block_cookie_banners=true" \
+  -d "prefers_color_scheme=dark" \
+  -d "is_cached=true" \
+  -d "cache_ttl=7200" \
+  -o screenshot.webp
 ```
 
 ```typescript Enhanced JavaScript
@@ -123,454 +176,533 @@ import { Screenshothis } from "@screenshothis/sdk";
 
 const screenshothis = new Screenshothis();
 
-const result = await screenshothis.screenshots.take({
-  apiKey: "ss_test_your_api_key_here",
-  url: "https://github.com",
-  format: "png",
-  quality: 90,
-  width: 1920,
-  height: 1080,
-  blockAds: true,
-  prefersColorScheme: "dark"
-});
-
-// Save to file
-const fs = require('fs');
-fs.writeFileSync('screenshot.png', Buffer.from(result));
-```
-
-```python Enhanced Python
-import requests
-
-response = requests.get(
-    'https://api.screenshothis.com/v1/screenshots/take',
-    params={
-        'api_key': 'ss_test_your_api_key_here',
-        'url': 'https://github.com',
-        'format': 'png',
-        'quality': '90',
-        'width': '1920',
-        'height': '1080',
-        'block_ads': 'true',
-        'prefers_color_scheme': 'dark'
-    }
-)
-```
-
-</CodeGroup>
-
-## Response Formats
-
-<Columns cols={2}>
-  <div>
-    ### Image Response (Default)
-    Returns the screenshot image directly:
-
-    ```bash
-    curl "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_your_api_key_here&url=https://github.com" \
-      -o screenshot.jpeg
-    ```
-  </div>
-
-  <div>
-    ### Image Formats
-    Choose from multiple formats:
-
-    ```bash
-    # JPEG (default, smaller file size)
-    curl "...&format=jpeg"
-
-    # PNG (higher quality, transparency support)
-    curl "...&format=png"
-
-    # WebP (modern format, best compression)
-    curl "...&format=webp"
-    ```
-  </div>
-</Columns>
-
-## API Parameters
-
-| Parameter | Description | Default | Options |
-|-----------|-------------|---------|---------|
-| `url` | Website URL to screenshot | **Required** | Any valid URL |
-| `api_key` | Your API key | **Required** | `ss_test_` or `ss_live_` |
-| `width` | Viewport width | `1920` | Pixel value |
-| `height` | Viewport height | `1080` | Pixel value |
-| `format` | Image format | `jpeg` | `jpeg`, `png`, `webp` |
-| `quality` | Image quality (20-100) | `80` | `20` to `100` |
-| `is_mobile` | Mobile device simulation | `false` | `true`, `false` |
-| `block_ads` | Block advertisements | `false` | `true`, `false` |
-| `prefers_color_scheme` | Color scheme preference | `light` | `light`, `dark` |
-
-<Note>
-**Built-in Limits**: Screenshothis enforces an 8KB header size limit and 4KB cookie size limit for security and performance.
-</Note>
-
-## Interactive Testing
-
-<Frame caption="Try the API directly in your browser">
-  <Card
-    title="API Playground"
-    icon="play"
-    href="https://screenshothis.com/playground"
-  >
-    Test different parameters and see results instantly without writing code.
-  </Card>
-</Frame>
-
-### Sample URLs to Test
-
-Try these URLs to see different screenshot results:
-
-- **Landing page**: `https://screenshothis.com`
-- **GitHub profile**: `https://github.com/yourusername`
-- **Documentation**: `https://docs.screenshothis.com`
-- **News site**: `https://news.ycombinator.com`
-
-## Real-World Use Cases
-
-<AccordionGroup>
-  <Accordion title="Social Media Previews" icon="share">
-    Generate dynamic `og:image` tags for better social media sharing:
-
-        ```typescript
-    import { Screenshothis } from "@screenshothis/sdk";
-
-    // Generate preview for blog post
-    const generatePreview = async (blogPostUrl: string, apiKey: string) => {
-      const screenshothis = new Screenshothis();
-
-      const imageData = await screenshothis.screenshots.take({
-        apiKey,
-        url: blogPostUrl,
-        width: 1200,
-        height: 630,
-        format: "jpeg"
-      });
-
-      // Convert to base64 for direct use in HTML
-      const base64 = Buffer.from(imageData).toString('base64');
-      return `data:image/jpeg;base64,${base64}`;
-    };
-
-    // Usage in HTML
-    const previewUrl = await generatePreview("https://myblog.com/post", apiKey);
-    // <meta property="og:image" content="data:image/jpeg;base64,..." />
-    ```
-
-    <Check>Perfect for Twitter, LinkedIn, and Facebook sharing</Check>
-  </Accordion>
-
-  <Accordion title="Website Thumbnails" icon="image">
-    Create thumbnails for link previews, portfolios, or dashboards:
-
-    ```python
-    def create_thumbnail(website_url, api_key):
-        response = requests.get(
-            'https://api.screenshothis.com/v1/screenshots/take',
-            params={
-                'api_key': api_key,
-                'url': website_url,
-                'width': '400',
-                'height': '300',
-                'format': 'webp'
-            }
-        )
-        return response.content
-    ```
-
-    <Tip>Use WebP format for smaller file sizes</Tip>
-  </Accordion>
-
-  <Accordion title="Full Page Screenshots" icon="file-image">
-    Capture full page screenshots for reports, invoices, or documentation:
-
-    ```bash
-    curl "https://api.screenshothis.com/v1/screenshots/take" \
-      -G \
-      -d "api_key=ss_test_your_api_key_here" \
-      -d "url=https://invoice.example.com" \
-      -d "format=png" \
-      -d "width=1920" \
-      -d "height=1080" \
-      -o invoice.png
-    ```
-
-    <Check>Perfect for automated reporting workflows</Check>
-  </Accordion>
-
-  <Accordion title="Visual Testing" icon="bug">
-    Capture screenshots for visual regression testing:
-
-    ```typescript
-    import { Screenshothis } from "@screenshothis/sdk";
-    import * as fs from 'fs';
-
-    const captureForTesting = async (url: string, apiKey: string, testName: string) => {
-      const screenshothis = new Screenshothis();
-
-      const imageData = await screenshothis.screenshots.take({
-        apiKey,
-        url,
-        width: 1920,
-        height: 1080,
-        format: "png"
-      });
-
-      // Save for comparison in your test suite
-      const filename = `screenshots/${testName}-${Date.now()}.png`;
-      fs.writeFileSync(filename, Buffer.from(imageData));
-
-      return { filename, imageData };
-    };
-    ```
-  </Accordion>
-
-  <Accordion title="Error Handling with SDK" icon="shield">
-    Robust error handling using the TypeScript SDK:
-
-    ```typescript
-    import { Screenshothis } from "@screenshothis/sdk";
-    import * as errors from "@screenshothis/sdk/models/errors";
-
-    const screenshothis = new Screenshothis();
-
-    try {
-      const imageData = await screenshothis.screenshots.take({
-        apiKey: "ss_test_your_api_key_here",
-        url: "https://example.com"
-      });
-
-      // Save the screenshot
-      const fs = require('fs');
-      fs.writeFileSync('screenshot.jpeg', Buffer.from(imageData));
-      console.log('Screenshot saved successfully!');
-    } catch (error) {
-      if (error instanceof errors.ScreenshothisError) {
-        console.log(error.message);
-        console.log(error.statusCode);
-
-        if (error instanceof errors.ForbiddenError) {
-          console.log(error.data$.error);
-          console.log(error.data$.requestId);
-        }
-      }
-    }
-    ```
-
-    <Check>TypeScript provides full type safety for error handling</Check>
-  </Accordion>
-
-  <Accordion title="Browser Integration" icon="globe">
-    Using screenshots in web applications:
-
-    ```typescript
-    import { Screenshothis } from "@screenshothis/sdk";
-
-    const screenshothis = new Screenshothis();
-
-    // Create a screenshot preview function
-    const createPreview = async (url: string, apiKey: string) => {
-      try {
-        const imageData = await screenshothis.screenshots.take({
-          apiKey,
-          url,
-          width: 800,
-          height: 600,
-          format: "webp"
-        });
-
-        // Create blob URL for immediate display
-        const blob = new Blob([imageData], { type: 'image/webp' });
-        return URL.createObjectURL(blob);
-      } catch (error) {
-        console.error('Failed to create screenshot:', error);
-        return null;
-      }
-    };
-
-    // Usage in React/Vue/etc
-    const handleScreenshot = async () => {
-      const previewUrl = await createPreview(inputUrl, apiKey);
-      if (previewUrl) {
-        setImageSrc(previewUrl);
-      }
-    };
-    ```
-
-    <Tip>Use WebP format for smaller file sizes in browsers</Tip>
-  </Accordion>
-
-    <Accordion title="Direct URL Rendering (No API Call Needed!)" icon="link">
-    **The simplest approach - construct the URL directly:**
-
-            ```typescript
-    import type { GetV1ScreenshotsTakeRequest } from "@screenshothis/sdk/models/operations";
-
-    // Use SDK's existing type, excluding required fields that are handled separately
-    type ScreenshotOptions = Omit<GetV1ScreenshotsTakeRequest, "apiKey" | "url">;
-
-    // Pure URL construction - no SDK call needed!
-    const buildScreenshotUrl = (
-      url: string,
-      apiKey: string,
-      options?: ScreenshotOptions
-    ): string => {
-      const params = new URLSearchParams({
-        api_key: apiKey,
-        url: url,
-        ...options // All properly typed now!
-      });
-
-      return `https://api.screenshothis.com/v1/screenshots/take?${params}`;
-    };
-
-    // Usage - instant, no async needed!
-    const screenshotUrl = buildScreenshotUrl("https://github.com", apiKey, {
-      format: "png",
-      width: 800,
-      height: 600
-    });
-
-    // Use directly in HTML
-    document.getElementById('myImage').src = screenshotUrl;
-    // Or: <img src={screenshotUrl} alt="Screenshot" />
-    ```
-
-            **React/Vue Component (Zero Loading State!):**
-    ```tsx
-    import type { GetV1ScreenshotsTakeRequest } from "@screenshothis/sdk/models/operations";
-
-    type ScreenshotOptions = Omit<GetV1ScreenshotsTakeRequest, "apiKey" | "url">;
-
-    interface ScreenshotImageProps {
-      url: string;
-      apiKey: string;
-      options?: ScreenshotOptions;
-    }
-
-    const ScreenshotImage = ({ url, apiKey, options }: ScreenshotImageProps) => {
-      const screenshotUrl = buildScreenshotUrl(url, apiKey, {
-        format: "webp",
-        width: 800,
-        height: 600,
-        ...options
-      });
-
-      return <img src={screenshotUrl} alt="Screenshot" loading="lazy" />;
-    };
-
-    // Usage - all SDK types available with IntelliSense!
-    <ScreenshotImage
-      url="https://example.com"
-      apiKey="ss_test_your_key"
-      options={{
-        width: 1200,
-        height: 630,
-        blockAds: true,
-        prefersColorScheme: "dark",
-        selector: "#main"
-      }}
-    />
-    ```
-
-        **Advanced Options (Using SDK Types!):**
-    ```typescript
-    const screenshotUrl = buildScreenshotUrl("https://github.com", apiKey, {
-      // All options from GetV1ScreenshotsTakeRequest are available
+async function takeCustomScreenshot() {
+  try {
+    const result = await screenshothis.screenshots.take({
+      apiKey: "ss_test_1234567890abcdef",
+      url: "https://github.com",
       format: "webp",
       quality: 90,
       width: 1920,
       height: 1080,
       blockAds: true,
       blockCookieBanners: true,
-      blockTrackers: true,
-      blockResources: ["script", "image"],
       prefersColorScheme: "dark",
       prefersReducedMotion: "reduce",
-      isMobile: false,
-      deviceScaleFactor: 2,
-      selector: "#main-content",
-      userAgent: "MyApp/1.0"
+      isCached: true,
+      cacheTtl: 7200
     });
+
+    // Save to file
+    const fs = require('fs');
+    fs.writeFileSync('screenshot.webp', Buffer.from(result));
+
+    console.log('Custom screenshot saved!');
+  } catch (error) {
+    console.error('Failed to capture:', error.message);
+  }
+}
+```
+
+```python Enhanced Python
+import requests
+import json
+
+try:
+    # Custom headers for authenticated content
+    custom_headers = json.dumps({
+        "Authorization": "Bearer your-token",
+        "User-Preference": "dark-mode"
+    })
+
+    response = requests.get(
+        'https://api.screenshothis.com/v1/screenshots/take',
+        params={
+            'api_key': 'ss_test_1234567890abcdef',
+            'url': 'https://github.com',
+            'format': 'webp',
+            'quality': '90',
+            'width': '1920',
+            'height': '1080',
+            'block_ads': 'true',
+            'block_cookie_banners': 'true',
+            'prefers_color_scheme': 'dark',
+            'headers': custom_headers,
+            'is_cached': 'true',
+            'cache_ttl': '7200'
+        },
+        timeout=30
+    )
+
+    response.raise_for_status()
+
+    with open('screenshot.webp', 'wb') as f:
+        f.write(response.content)
+
+    print('Custom screenshot saved!')
+
+except requests.exceptions.RequestException as e:
+    print(f'Failed to capture: {e}')
+```
+
+</CodeGroup>
+
+### Mobile device simulation
+
+Capture screenshots as they would appear on mobile devices:
+
+<CodeGroup>
+
+```bash Mobile cURL
+curl -X GET "https://api.screenshothis.com/v1/screenshots/take" \
+  -G \
+  -d "api_key=ss_test_1234567890abcdef" \
+  -d "url=https://github.com" \
+  -d "is_mobile=true" \
+  -d "width=390" \
+  -d "height=844" \
+  -d "device_scale_factor=3" \
+  -d "has_touch=true" \
+  -d "format=webp" \
+  -d "quality=85" \
+  -o mobile-screenshot.webp
+```
+
+```typescript Mobile JavaScript
+const mobileScreenshot = await screenshothis.screenshots.take({
+  apiKey: "ss_test_1234567890abcdef",
+  url: "https://github.com",
+  isMobile: true,
+  width: 390,
+  height: 844,
+  deviceScaleFactor: 3,
+  hasTouch: true,
+  format: "webp",
+  quality: 85,
+  userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15"
+});
+```
+
+```python Mobile Python
+mobile_params = {
+    'api_key': 'ss_test_1234567890abcdef',
+    'url': 'https://github.com',
+    'is_mobile': 'true',
+    'width': '390',
+    'height': '844',
+    'device_scale_factor': '3',
+    'has_touch': 'true',
+    'format': 'webp',
+    'quality': '85'
+}
+
+response = requests.get(
+    'https://api.screenshothis.com/v1/screenshots/take',
+    params=mobile_params,
+    timeout=30
+)
+```
+
+</CodeGroup>
+
+## API parameters
+
+Configure your screenshots with these parameters:
+
+### Required parameters
+
+<ParamField query="api_key" type="string" required>
+Your API key from the dashboard. Test keys start with `ss_test_`, live keys start with `ss_live_`.
+</ParamField>
+
+<ParamField query="url" type="string" required>
+The website URL to screenshot. Must be a valid URL including protocol (http:// or https://).
+</ParamField>
+
+### Viewport and device settings
+
+<ParamField query="width" type="integer" default="1920">
+Viewport width in pixels. Range: 100-3840.
+</ParamField>
+
+<ParamField query="height" type="integer" default="1080">
+Viewport height in pixels. Range: 100-2160.
+</ParamField>
+
+<ParamField query="is_mobile" type="boolean" default="false">
+Simulate mobile device viewport and user agent.
+</ParamField>
+
+<ParamField query="is_landscape" type="boolean" default="false">
+Set device orientation to landscape when using mobile simulation.
+</ParamField>
+
+<ParamField query="has_touch" type="boolean" default="false">
+Enable touch input simulation for the device.
+</ParamField>
+
+<ParamField query="device_scale_factor" type="number" default="1">
+Device pixel ratio for high-DPI displays. Common values: 1, 1.5, 2, 3.
+</ParamField>
+
+### Image output settings
+
+<ParamField query="format" type="string" default="jpeg">
+Image format. Options: `jpeg`, `png`, `webp`.
+</ParamField>
+
+<ParamField query="quality" type="integer" default="80">
+Image quality for JPEG and WebP formats. Range: 20-100.
+</ParamField>
+
+<ParamField query="selector" type="string">
+CSS selector to screenshot a specific element instead of the full page.
+</ParamField>
+
+### Content filtering
+
+<ParamField query="block_ads" type="boolean" default="false">
+Block advertisements and tracking scripts for cleaner screenshots.
+</ParamField>
+
+<ParamField query="block_cookie_banners" type="boolean" default="false">
+Automatically dismiss cookie consent banners and privacy notices.
+</ParamField>
+
+<ParamField query="block_trackers" type="boolean" default="false">
+Block all trackers and third-party scripts.
+</ParamField>
+
+### Accessibility and preferences
+
+<ParamField query="prefers_color_scheme" type="string" default="light">
+Set color scheme preference. Options: `light`, `dark`.
+</ParamField>
+
+<ParamField query="prefers_reduced_motion" type="string" default="no-preference">
+Set motion preference for animations. Options: `no-preference`, `reduce`.
+</ParamField>
+
+### Caching settings
+
+<ParamField query="is_cached" type="boolean" default="false">
+Enable caching for this screenshot to improve performance on repeated requests.
+</ParamField>
+
+<ParamField query="cache_ttl" type="integer" default="3600">
+Cache time-to-live in seconds when caching is enabled. Range: 3600-31622400 (1 hour to 1 year).
+</ParamField>
+
+<ParamField query="cache_key" type="string">
+Custom cache key for grouping related screenshots. Use with `is_cached=true`.
+</ParamField>
+
+### Advanced browser settings
+
+<ParamField query="user_agent" type="string">
+Custom User-Agent string to use for the request. Overrides default browser user agent.
+</ParamField>
+
+<ParamField query="headers" type="string">
+Custom HTTP headers. Maximum size: 8KB.
+
+```text
+Authorization: Bearer token
+Custom-Header: value
+```
+</ParamField>
+
+<ParamField query="cookies" type="string">
+Custom cookies. Maximum size: 4KB.
+
+```text
+session_id=abc123; Domain=example.com; Path=/; HttpOnly; Secure
+preferences=dark_mode; Domain=example.com; Path=/; HttpOnly; Secure
+```
+</ParamField>
+
+<ParamField query="bypass_csp" type="boolean" default="false">
+Bypass Content Security Policy restrictions. Use only when necessary for specific sites.
+</ParamField>
+
+<Note>
+**Security and size limits**:
+- Headers: Maximum 8KB total size
+- Cookies: Maximum 4KB total size
+- URL length: Maximum 2048 characters
+- Request timeout: 30 seconds maximum
+</Note>
+
+## Response formats
+
+### Image response (default)
+
+By default, you'll receive the screenshot image directly as binary data:
+
+```bash
+curl "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_1234567890abcdef&url=https://github.com" \
+  -o screenshot.jpeg
+```
+
+**Content-Type**: `image/jpeg`, `image/png`, or `image/webp` based on your `format` parameter.
+
+### Error responses
+
+When something goes wrong, you'll receive a JSON error response:
+
+```json
+{
+  "error": "Invalid API key",
+  "requestId": "req_1234567890abcdef"
+}
+```
+
+Common HTTP status codes:
+- `400` - Bad request (invalid parameters)
+- `403` - Forbidden (invalid API key or quota exceeded)
+- `429` - Too many requests (rate limit exceeded)
+- `500` - Internal server error
+
+## Test the API interactively
+
+<Frame caption="Try different parameters without writing code">
+  <Card
+    title="API Playground"
+    icon="play"
+    href="https://screenshothis.com/playground"
+  >
+    Test the API with different URLs and parameters to see results instantly.
+  </Card>
+</Frame>
+
+### Sample URLs for testing
+
+Try these URLs to see different screenshot results:
+
+- **Modern website**: `https://screenshothis.com`
+- **Code repository**: `https://github.com/screenshothis/screenshothis`
+- **Documentation**: `https://docs.screenshothis.com`
+- **News site**: `https://news.ycombinator.com`
+
+## Real-world examples
+
+<AccordionGroup>
+  <Accordion title="Social media previews" icon="share">
+    Generate dynamic `og:image` tags for better social media sharing:
+
+    ```typescript
+    import { Screenshothis } from "@screenshothis/sdk";
+
+    async function generateSocialPreview(blogPostUrl: string, apiKey: string) {
+      const screenshothis = new Screenshothis();
+
+      try {
+        const imageData = await screenshothis.screenshots.take({
+          apiKey,
+          url: blogPostUrl,
+          width: 1200,
+          height: 630,
+          format: "jpeg",
+          quality: 85
+        });
+
+        // Convert to base64 for immediate use
+        const base64 = Buffer.from(imageData).toString('base64');
+        return `data:image/jpeg;base64,${base64}`;
+      } catch (error) {
+        console.error('Failed to generate preview:', error.message);
+        return null;
+      }
+    }
+
+    // Usage in your application
+    const previewUrl = await generateSocialPreview("https://myblog.com/post", apiKey);
+    // Use in HTML: <meta property="og:image" content="data:image/jpeg;base64,..." />
     ```
 
-        <Check>**Much more efficient!** The browser fetches the image directly from the API - no intermediate processing needed.</Check>
+    <Check>Perfect for Twitter, LinkedIn, and Facebook sharing cards</Check>
+  </Accordion>
 
-    <Tip>Uses the SDK's official `GetV1ScreenshotsTakeRequest` type for perfect IntelliSense and type safety</Tip>
+  <Accordion title="Website thumbnails" icon="image">
+    Create thumbnails for link previews, portfolios, or dashboards:
+
+    ```python
+    import requests
+    from PIL import Image
+    from io import BytesIO
+
+    def create_thumbnail(website_url, api_key, thumbnail_size=(400, 300)):
+        try:
+            response = requests.get(
+                'https://api.screenshothis.com/v1/screenshots/take',
+                params={
+                    'api_key': api_key,
+                    'url': website_url,
+                    'width': '1920',
+                    'height': '1080',
+                    'format': 'png'
+                },
+                timeout=30
+            )
+
+            response.raise_for_status()
+
+            # Create thumbnail using PIL
+            image = Image.open(BytesIO(response.content))
+            image.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
+
+            return image
+
+        except requests.exceptions.RequestException as e:
+            print(f'Failed to create thumbnail: {e}')
+            return None
+
+    # Usage
+    thumbnail = create_thumbnail('https://example.com', 'ss_test_1234567890abcdef')
+    if thumbnail:
+        thumbnail.save('thumbnail.png')
+    ```
+
+    <Tip>Use WebP format for smaller file sizes in web applications</Tip>
+  </Accordion>
+
+  <Accordion title="Visual regression testing" icon="bug">
+    Capture screenshots for automated testing pipelines:
+
+    ```typescript
+    import { Screenshothis } from "@screenshothis/sdk";
+    import * as fs from 'fs';
+    import * as path from 'path';
+
+    class VisualTester {
+      private screenshothis: Screenshothis;
+
+      constructor(private apiKey: string) {
+        this.screenshothis = new Screenshothis();
+      }
+
+      async captureBaseline(url: string, testName: string): Promise<string> {
+        try {
+          const imageData = await this.screenshothis.screenshots.take({
+            apiKey: this.apiKey,
+            url,
+            width: 1920,
+            height: 1080,
+            format: "png",
+            blockAds: true  // Consistent results
+          });
+
+          const filename = `baselines/${testName}.png`;
+          fs.writeFileSync(filename, Buffer.from(imageData));
+
+          console.log(`✅ Baseline saved: ${filename}`);
+          return filename;
+
+        } catch (error) {
+          console.error(`❌ Failed to capture baseline: ${error.message}`);
+          throw error;
+        }
+      }
+    }
+
+    // Usage in your test suite
+    const tester = new VisualTester('ss_test_1234567890abcdef');
+    await tester.captureBaseline('https://myapp.com/component', 'header-component');
+    ```
+
+    <Check>Ideal for CI/CD pipelines and automated quality assurance</Check>
+  </Accordion>
+
+  <Accordion title="Direct URL rendering" icon="link">
+    **The most efficient approach - construct the URL directly:**
+
+    ```typescript
+    // Build screenshot URLs without making API calls
+    function buildScreenshotUrl(
+      url: string,
+      apiKey: string,
+      options: Record<string, string | number | boolean> = {}
+    ): string {
+      const params = new URLSearchParams({
+        api_key: apiKey,
+        url: url,
+        ...Object.fromEntries(
+          Object.entries(options).map(([k, v]) => [k, String(v)])
+        )
+      });
+
+      return `https://api.screenshothis.com/v1/screenshots/take?${params}`;
+    }
+
+    // Usage - instant, no async needed!
+    const screenshotUrl = buildScreenshotUrl("https://github.com", "ss_test_1234567890abcdef", {
+      format: "png",
+      width: 800,
+      height: 600,
+      block_ads: true
+    });
+
+    // Use directly in HTML
+    document.getElementById('myImage').src = screenshotUrl;
+    // Or in React: <img src={screenshotUrl} alt="Screenshot" />
+    ```
+
+    **React component example:**
+
+    ```tsx
+    interface ScreenshotImageProps {
+      url: string;
+      apiKey: string;
+      width?: number;
+      height?: number;
+      format?: 'jpeg' | 'png' | 'webp';
+    }
+
+    function ScreenshotImage({ url, apiKey, width = 800, height = 600, format = 'webp' }: ScreenshotImageProps) {
+      const screenshotUrl = buildScreenshotUrl(url, apiKey, {
+        width,
+        height,
+        format,
+        block_ads: true
+      });
+
+      return (
+        <img
+          src={screenshotUrl}
+          alt="Screenshot"
+          loading="lazy"
+          onError={(e) => console.error('Screenshot failed to load')}
+        />
+      );
+    }
+
+    // Usage
+    <ScreenshotImage
+      url="https://example.com"
+      apiKey="ss_test_1234567890abcdef"
+      width={1200}
+      height={630}
+      format="webp"
+    />
+    ```
+
+    <Check>**Much more efficient!** The browser fetches the image directly - no intermediate processing needed</Check>
   </Accordion>
 </AccordionGroup>
 
-## Rate Limits & Pricing
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Free Tier" icon="gift">
-    - **100 screenshots/month**
-    - **10 requests/minute**
-    - All formats (JPEG, PNG, WebP)
-    - Ad blocking & privacy features
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Explore all available parameters, response formats, and error handling
   </Card>
-
-  <Card title="Pro Plans" icon="rocket" href="https://screenshothis.com/pricing">
-    - **Higher quotas**
-    - **Faster rate limits**
-    - Custom cache settings
-    - Priority processing
+  <Card title="JavaScript SDK" icon="js" href="/sdk/js">
+    Use our official TypeScript SDK with full type safety and error handling
   </Card>
-</CardGroup>
-
-<Info>
-Rate limiting is enforced per-user via built-in `requestLimits` to ensure fair usage and optimal performance for all users.
-</Info>
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card
-    title="JavaScript SDK"
-    icon="code"
-    href="/sdk-js"
-  >
-    Complete SDK guide with React/Vue examples, error handling, and tree-shaking
+  <Card title="Self-hosting" icon="server" href="/self-host">
+    Run Screenshothis on your own infrastructure for complete control
   </Card>
-  <Card
-    title="API Reference"
-    icon="brackets-curly"
-    href="/api-reference/introduction"
-  >
-    Explore all available endpoints and advanced parameters
-  </Card>
-  <Card
-    title="Self-Host Guide"
-    icon="server"
-    href="/self-host"
-  >
-    Run Screenshothis on your own infrastructure for full control
-  </Card>
-  <Card
-    title="GitHub Repository"
-    icon="github"
-    href="https://github.com/screenshothis/screenshothis-js"
-  >
-    View SDK source code, report issues, or contribute
+  <Card title="OpenAPI Spec" icon="file-code" href="https://api.screenshothis.com/openapi">
+    Generate client libraries for any programming language
   </Card>
 </CardGroup>
-
-## Need Help?
-
-<Columns cols={3}>
-  <Card title="Documentation" icon="book" href="/api-reference/introduction">
-    Browse our complete API reference and guides
-  </Card>
-  <Card title="GitHub" icon="github" href="https://github.com/screenshothis/screenshothis">
-    View source code, report issues, or contribute
-  </Card>
-  <Card title="Support" icon="envelope" href="mailto:support@screenshothis.com">
-    Get help from our team via email
-  </Card>
-</Columns>
-
-<Warning>
-**Development vs Production**: Remember to use `ss_live_` prefixed API keys for production applications and `ss_test_` for development and testing.
-</Warning>

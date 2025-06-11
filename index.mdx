@@ -1,75 +1,148 @@
 ---
 title: "Screenshot API for Modern Applications"
 sidebarTitle: "Getting Started"
-description: "Automate web captures and generate visuals instantly."
+description: "Generate beautiful screenshots programmatically with a single API call."
 ---
 
+<Frame>
 <img
   className="block rounded-2xl shadow dark:hidden"
   src="/images/playground-light.png"
-  alt="Playground"
+  alt="Screenshothis API playground interface"
 />
-
 <img
   className="hidden rounded-2xl shadow shadow-white/5 dark:block"
   src="/images/playground-dark.png"
-  alt="Playground"
+  alt="Screenshothis API playground interface in dark mode"
 />
+</Frame>
 
-Screenshothis is an **open-source** service that lets you programmatically capture beautiful, high-resolution images of any web page. With a single HTTP request you can generate full-page screenshots, device-specific view-ports, PDFs, or thumbnails—perfect for previews, social cards, reports, or automated testing.
+Generate beautiful, high-resolution screenshots of any web page with a single HTTP request. Screenshothis provides lightning-fast Chromium rendering, automatic high-DPI output, and flexible customization options—perfect for social cards, link previews, automated testing, and visual content generation.
 
-## Why Screenshothis?
+## Why choose Screenshothis?
 
-- ⚡️ Lightning-fast Chromium rendering (headless Chrome)
-- 🎨 Automatic high-DPI output up to 4K
-- 📐 Custom viewport, device emulation & full-page support
-- 🛠️ Flexible query parameters for delay, JS injection, dark-mode, and more
-- 🔒 Built-in rate-limiting, CSP-bypass auditing & token authentication
-- 🏗️ Docker-first, stateless architecture that scales horizontally
-- 🆓 100 % API-first & AGPL-3.0 open-source
+<CardGroup cols={2}>
+  <Card title="Lightning Fast" icon="bolt">
+    Get screenshots in under 2 seconds with optimized Chromium rendering
+  </Card>
+  <Card title="High Quality" icon="image">
+    Automatic high-DPI output up to 4K resolution with crisp, clear images
+  </Card>
+  <Card title="Full Control" icon="sliders">
+    Custom viewports, device emulation, content blocking, and dark mode support
+  </Card>
+  <Card title="Production Ready" icon="shield-check">
+    Built-in rate limiting, authentication, and horizontal scaling
+  </Card>
+</CardGroup>
 
-> "Take the pain out of screenshots so you can focus on your **product**, not your browser."
+## Quick start
 
-## Quick example
+Get your first screenshot in under 2 minutes:
 
+<Steps>
+<Step title="Get your API key">
+Sign up for free at [screenshothis.com](https://screenshothis.com/register) and create your API key. You'll get 100 free screenshots per month.
+</Step>
+
+<Step title="Make your first request">
 ```bash
-curl "https://api.screenshothis.com/v1/screenshot?url=https://github.com&device=desktop&fullPage=true"
+curl "https://api.screenshothis.com/v1/screenshots/take?api_key=ss_test_your_key&url=https://github.com" \
+  -o screenshot.jpeg
 ```
 
-The API responds with a PNG image (or JSON metadata when `output=json` is requested).
+<Check>
+Your screenshot will be saved as `screenshot.jpeg` in the current directory
+</Check>
+</Step>
 
-## Typical use-cases
-
-1. Generate social-media preview images (`og:image`) for dynamic pages.
-2. Show live website thumbnails in dashboards, newsletters, or link previews.
-3. Create PDF snapshots of invoices, reports, or documentation.
-4. Visual regression testing in CI pipelines.
-
-## Get started
-
-Ready to integrate screenshots into your application? Simply sign up and start making API calls:
-
-1. **Sign up** for a free account at [screenshothis.com](https://screenshothis.com)
-2. **Get your API key** from the dashboard
-3. **Make your first request** using our simple REST API
+<Step title="Customize your screenshots">
+Add parameters to control the output:
 
 ```bash
-curl -H "Authorization: Bearer YOUR_API_KEY" \
-  "https://api.screenshothis.com/v1/screenshot?url=https://example.com"
+curl "https://api.screenshothis.com/v1/screenshots/take" \
+  -G \
+  -d "api_key=ss_test_your_key" \
+  -d "url=https://github.com" \
+  -d "format=png" \
+  -d "width=1920" \
+  -d "height=1080" \
+  -d "block_ads=true" \
+  -o screenshot.png
 ```
+</Step>
+</Steps>
 
-Need more control? Check out our [Self-host](/self-host) guide to run Screenshothis on your own infrastructure.
+## Common use cases
 
-## Open Source & Community
+<AccordionGroup>
+<Accordion title="Social media previews" icon="share">
+Generate dynamic `og:image` tags for better social sharing:
 
-Screenshothis is **open source** (AGPL-3.0) because we believe in transparency and community-driven development:
+```bash
+curl "https://api.screenshothis.com/v1/screenshots/take" \
+  -d "api_key=ss_test_your_key" \
+  -d "url=https://yourblog.com/post" \
+  -d "width=1200" \
+  -d "height=630"
+```
+</Accordion>
+
+<Accordion title="Website thumbnails" icon="image">
+Create thumbnails for dashboards, newsletters, or link previews:
+
+```bash
+curl "https://api.screenshothis.com/v1/screenshots/take" \
+  -d "api_key=ss_test_your_key" \
+  -d "url=https://example.com" \
+  -d "width=400" \
+  -d "height=300" \
+  -d "format=webp"
+```
+</Accordion>
+
+<Accordion title="Visual testing" icon="bug">
+Capture screenshots for visual regression testing in CI pipelines:
+
+```bash
+curl "https://api.screenshothis.com/v1/screenshots/take" \
+  -d "api_key=ss_test_your_key" \
+  -d "url=https://yourapp.com/component" \
+  -d "selector=#main-component"
+```
+</Accordion>
+
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Complete quickstart guide" icon="rocket" href="/quickstart">
+    Follow our step-by-step guide to master the API in 5 minutes
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/introduction">
+    Explore all available parameters and response formats
+  </Card>
+  <Card title="JavaScript SDK" icon="js" href="/sdk/js">
+    Use our official TypeScript SDK for seamless integration
+  </Card>
+  <Card title="Self-host setup" icon="server" href="/self-host">
+    Run Screenshothis on your own infrastructure
+  </Card>
+</CardGroup>
+
+## Open source and transparent
+
+Screenshothis is **open source** (AGPL-3.0) because we believe in transparency and community-driven development. You can:
 
 - ⭐ **Star us on [GitHub](https://github.com/screenshothis/screenshothis)** to show your support
 - 🐛 **Report issues** or **request features** in our [Issues](https://github.com/screenshothis/screenshothis/issues)
 - 🤝 **Contribute** improvements, bug fixes, or new features
-- 🏠 **Self-host** on your own infrastructure (see our [Self-host guide](/self-host))
+- 🏠 **Self-host** on your own infrastructure for complete control
 
-By keeping our code open, you can see exactly how your screenshots are generated, contribute enhancements, and even run your own instance if needed.
+<Info>
+By keeping our code open, you can see exactly how your screenshots are generated, contribute enhancements, and run your own instance if needed.
+</Info>
 
 ---
 

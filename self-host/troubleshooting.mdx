@@ -1,241 +1,358 @@
 ---
 title: "Troubleshooting"
 sidebarTitle: "Troubleshooting"
-description: "Common issues and solutions when self-hosting Screenshothis."
+description: "Solve common issues when self-hosting Screenshothis with step-by-step solutions."
 ---
 
-# Troubleshooting Guide
+# Troubleshooting guide
 
-This guide covers common issues you might encounter when self-hosting Screenshothis and their solutions.
+Resolve common issues you might encounter when self-hosting Screenshothis. This guide provides step-by-step solutions, diagnostic commands, and prevention strategies to keep your instance running smoothly.
 
 <Note>
-**Important**: For the most accurate troubleshooting information, always refer to the [Screenshothis repository](https://github.com/screenshothis/screenshothis) and check existing [GitHub Issues](https://github.com/screenshothis/screenshothis/issues) for similar problems.
+**Get the latest help**: Check the [Screenshothis repository](https://github.com/screenshothis/screenshothis) and [GitHub Issues](https://github.com/screenshothis/screenshothis/issues) for the most recent troubleshooting information and community solutions.
 </Note>
 
-## Quick Diagnostics
+## Quick diagnostics
 
-### Health Check Commands
+Start here to quickly assess your system's health and identify issues:
+
+<Steps>
+<Step title="Check application health">
+Test if your Screenshothis instance is responding:
 
 ```bash
-# Check application health
+# Basic health check
 curl -f http://localhost:3000/health
 
-# Check detailed health status
-curl -s http://localhost:3000/health | jq
+# Detailed health status
+curl -s http://localhost:3000/health | jq '.'
+```
 
+<Check>
+You should see a 200 response with health status information
+</Check>
+</Step>
+
+<Step title="Verify readiness">
+Check if the application is ready to serve requests:
+
+```bash
 # Check if application is ready
 curl -f http://localhost:3000/health/ready
 
 # Check if application is alive
 curl -f http://localhost:3000/health/live
 ```
+</Step>
 
-### Log Analysis
+<Step title="Review recent logs">
+Examine logs for error messages and clues:
 
 ```bash
-# View application logs (Docker)
-docker logs screenshothis
+# View recent application logs
+docker logs screenshothis --tail 50
 
 # Follow logs in real-time
 docker logs -f screenshothis
 
 # View logs with timestamps
-docker logs -t screenshothis
-
-# View last 100 lines
-docker logs --tail 100 screenshothis
+docker logs -t screenshothis --since 1h
 ```
+</Step>
+</Steps>
 
-## Common Issues
+## Common startup issues
 
-### 1. Application Won't Start
+### Application won't start
 
-#### Symptoms
-- Container exits immediately
-- "Application failed to start" errors
-- Port binding failures
+When your Screenshothis instance fails to start or exits immediately:
 
-#### Solutions
+<AccordionGroup>
+<Accordion title="Missing environment variables" icon="exclamation-triangle">
+**Symptoms**: Container exits immediately with environment variable errors
 
-<Accordion title="Missing Environment Variables">
-**Error**: Application exits with missing environment variable errors.
-
+**Diagnose the issue**:
 ```bash
 # Check which variables are missing
 docker logs screenshothis 2>&1 | grep -i "missing\|required\|undefined"
 
-# Verify your .env file
-cat .env.production
+# Verify your environment file
+cat .env.production | grep -v '^#' | grep -v '^$'
 
-# Ensure all required variables are set
-grep -v '^#' .env.production | grep -v '^$'
+# List all environment variables in container
+docker exec screenshothis env | sort
 ```
 
-**Solution**: Set all required environment variables as documented in the [Configuration Guide](/self-host/configuration). Key required variables include:
-- `DATABASE_URL`
-- `BETTER_AUTH_SECRET`
-- S3 configuration (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, etc.)
-- `VITE_SERVER_URL` (for frontend)
+**Fix the problem**:
+1. Ensure all required variables are set in your `.env` file
+2. Key required variables include:
+   - `DATABASE_URL`
+   - `BETTER_AUTH_SECRET`
+   - S3 configuration (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, etc.)
+   - `VITE_SERVER_URL` (for frontend)
+
+```bash
+# Example fix - add missing variables
+echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> .env.production
+echo "DEFAULT_API_KEY_PREFIX=ss_live" >> .env.production
+```
+
+<Warning>
+Never use default development secrets in production. Generate unique, secure values for all secrets.
+</Warning>
 </Accordion>
 
-<Accordion title="Port Already in Use">
-**Error**: `Error: listen EADDRINUSE: address already in use :::3000`
+<Accordion title="Port already in use" icon="network-wired">
+**Symptoms**: `Error: listen EADDRINUSE: address already in use :::3000`
 
+**Diagnose and fix**:
 ```bash
 # Check what's using port 3000
 sudo netstat -tulpn | grep :3000
+# Or use lsof
 sudo lsof -i :3000
 
-# Kill the process using the port
+# Kill the process using the port (if safe to do so)
 sudo kill -9 $(sudo lsof -t -i:3000)
 
-# Or change the port in your environment
+# Alternative: Change the port in your environment
 echo "PORT=3001" >> .env.production
 ```
+
+**Prevention**: Use a reverse proxy like nginx to handle port 80/443 and proxy to your application.
 </Accordion>
 
-<Accordion title="Docker Build Failures">
-**Error**: Docker build fails with dependency errors.
+<Accordion title="Docker build failures" icon="package">
+**Symptoms**: Docker build fails with dependency or build errors
 
+**Diagnose and fix**:
 ```bash
 # Clear Docker cache and rebuild
 docker system prune -f
 docker build --no-cache -t screenshothis:latest .
 
-# Check Docker logs for specific errors
+# Build with verbose output for debugging
 docker build -t screenshothis:latest . 2>&1 | tee build.log
-```
-</Accordion>
 
-### 2. Database Connection Issues
+# Check available disk space
+df -h
 
-#### Symptoms
-- "Connection refused" errors
-- "Database not found" errors
-- Timeout errors
-
-#### Solutions
-
-<Accordion title="PostgreSQL Connection Failed">
-**Error**: `Connection refused` or `Database does not exist`
-
-```bash
-# Test database connectivity
-psql $DATABASE_URL -c "SELECT version();"
-
-# Check if PostgreSQL is running
-docker ps | grep postgres
-docker logs postgres-container
-
-# Test connection manually
-psql -h localhost -p 5432 -U screenshothis -d screenshothis
+# Clear unused Docker resources
+docker system df
+docker system prune -a
 ```
 
 **Common fixes**:
-1. Ensure PostgreSQL container is running
-2. Verify database credentials
-3. Check if database exists
-4. Verify network connectivity
+- Ensure sufficient disk space (at least 2GB free)
+- Check internet connectivity for package downloads
+- Verify Node.js version compatibility
+</Accordion>
+</AccordionGroup>
 
+## Database connection problems
+
+### PostgreSQL connectivity issues
+
+When you can't connect to your PostgreSQL database:
+
+<AccordionGroup>
+<Accordion title="Connection refused errors" icon="database">
+**Symptoms**: `Connection refused`, `Database does not exist`, or timeout errors
+
+**Diagnose the issue**:
 ```bash
-# Create database if it doesn't exist
-createdb -h localhost -U screenshothis screenshothis
+# Test database connectivity directly
+psql "$DATABASE_URL" -c "SELECT version();"
 
-# Reset database (CAUTION: This deletes all data)
+# Check if PostgreSQL container is running
+docker ps | grep postgres
+docker logs postgres-container
+
+# Test connection with individual components
+psql -h localhost -p 5432 -U screenshothis -d screenshothis
+```
+
+**Fix the problem**:
+
+<Steps>
+<Step title="Verify PostgreSQL is running">
+```bash
+# Start PostgreSQL if stopped
+docker-compose up -d postgres
+
+# Check container health
+docker ps --filter "name=postgres"
+```
+</Step>
+
+<Step title="Verify database exists">
+```bash
+# List available databases
+psql -h localhost -U screenshothis -l
+
+# Create database if missing
+createdb -h localhost -U screenshothis screenshothis
+```
+</Step>
+
+<Step title="Test connection">
+```bash
+# Use the exact DATABASE_URL from your environment
+psql "$DATABASE_URL" -c "SELECT 1;"
+```
+
+<Check>
+You should see a successful connection and query result
+</Check>
+</Step>
+</Steps>
+
+**Emergency reset** (⚠️ **This deletes all data**):
+```bash
+# Only use if you need to start fresh
 dropdb -h localhost -U screenshothis screenshothis
 createdb -h localhost -U screenshothis screenshothis
+pnpm run db:push
 ```
 </Accordion>
 
-<Accordion title="Database Migration Errors">
-**Error**: Migration failed or schema errors.
+<Accordion title="Migration and schema errors" icon="gear">
+**Symptoms**: Migration failed, schema errors, or table not found errors
 
+**Fix schema issues**:
 ```bash
-# Check migration status
+# Check current schema status
 pnpm run db:studio
 
-# Push schema changes (development)
+# Apply schema changes (development)
 pnpm run db:push
 
-# Reset database and apply migrations
-pnpm run db:reset
-
-# Generate new migrations
+# For production, use migrations
 pnpm run db:generate
+pnpm run db:migrate
+
+# Reset schema (⚠️ destructive)
+pnpm run db:reset
+```
+
+**Check migration status**:
+```bash
+# View migration history
+psql "$DATABASE_URL" -c "SELECT * FROM drizzle.__drizzle_migrations;"
+
+# Check table structure
+psql "$DATABASE_URL" -c "\dt"
 ```
 </Accordion>
+</AccordionGroup>
 
-### 3. Redis Connection Issues
+## Redis connectivity issues
 
-#### Symptoms
-- "Redis connection failed" errors
-- Session/rate limiting not working
-- Cache-related errors
+### Cache and session problems
 
-#### Solutions
+When Redis connections fail or caching doesn't work:
 
-<Accordion title="Redis Connection Failed">
-**Error**: `Redis connection to localhost:6379 failed`
+<AccordionGroup>
+<Accordion title="Redis connection failed" icon="server">
+**Symptoms**: `Redis connection to localhost:6379 failed` or session issues
 
+**Diagnose and fix**:
 ```bash
 # Check if Redis is running
 docker ps | grep redis
 docker logs redis-container
 
-# Test Redis connection
+# Test Redis connection directly
 redis-cli ping
-redis-cli -u $REDIS_URL ping
+redis-cli -u "$REDIS_URL" ping
 
 # Start Redis if not running
 docker-compose up -d redis
+
+# Test with authentication if required
+redis-cli -a your-password ping
 ```
 
-**Solution**: Ensure Redis is running and accessible at the configured URL.
+**Verify Redis configuration**:
+```bash
+# Check Redis server info
+redis-cli info server
+
+# Test basic operations
+redis-cli set test "hello"
+redis-cli get test
+redis-cli del test
+```
 </Accordion>
 
-<Accordion title="Redis Authentication">
-**Error**: `NOAUTH Authentication required`
+<Accordion title="Authentication errors" icon="key">
+**Symptoms**: `NOAUTH Authentication required` or permission denied
 
+**Fix authentication**:
 ```bash
-# Check Redis configuration
+# Check if Redis requires authentication
 docker exec redis-container redis-cli config get requirepass
 
-# Test with authentication
-redis-cli -a your-password ping
-
-# Update REDIS_URL with password
+# Update REDIS_URL with credentials
 export REDIS_URL="redis://username:password@localhost:6379"
+
+# Test authenticated connection
+redis-cli -u "$REDIS_URL" ping
+```
+
+**Redis URL formats**:
+```bash
+# No authentication
+REDIS_URL=redis://localhost:6379
+
+# With password
+REDIS_URL=redis://:password@localhost:6379
+
+# With username and password
+REDIS_URL=redis://username:password@localhost:6379
 ```
 </Accordion>
+</AccordionGroup>
 
-### 4. S3/Storage Issues
+## Storage and S3 issues
 
-#### Symptoms
-- Screenshot uploads fail
-- "Access denied" errors
-- "Bucket not found" errors
+### Screenshot upload failures
 
-#### Solutions
+When screenshots can't be saved to storage:
 
-<Accordion title="S3 Access Denied">
-**Error**: `AccessDenied` or `Forbidden` errors when uploading to S3.
+<AccordionGroup>
+<Accordion title="S3 access denied errors" icon="cloud">
+**Symptoms**: `AccessDenied`, `Forbidden`, or upload failure errors
 
+**Diagnose the issue**:
 ```bash
-# Test S3 credentials
+# Test S3 credentials and access
 aws s3 ls s3://your-bucket --region your-region
 
-# Test with current environment variables
+# Check current AWS configuration
 aws configure list
 
-# Verify bucket exists and you have access
+# Verify bucket exists and is accessible
 aws s3api head-bucket --bucket your-bucket
 ```
 
-**Solutions**:
-1. Verify AWS credentials are correct
-2. Check bucket permissions/policies
-3. Ensure bucket exists in the correct region
-4. Verify IAM user has required permissions
+**Fix permissions**:
+
+<Steps>
+<Step title="Verify credentials">
+Check that your AWS credentials are correct and active:
+
+```bash
+# Test basic AWS connectivity
+aws sts get-caller-identity
+
+# List accessible buckets
+aws s3 ls
+```
+</Step>
+
+<Step title="Check bucket permissions">
+Ensure your IAM user has the required S3 permissions:
 
 ```json
 {
@@ -249,82 +366,141 @@ aws s3api head-bucket --bucket your-bucket
         "s3:DeleteObject"
       ],
       "Resource": "arn:aws:s3:::your-bucket/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::your-bucket"
     }
   ]
 }
 ```
+</Step>
+
+<Step title="Test upload">
+```bash
+# Test file upload
+echo "test" > test.txt
+aws s3 cp test.txt s3://your-bucket/test.txt
+aws s3 rm s3://your-bucket/test.txt
+rm test.txt
+```
+
+<Check>
+Upload and deletion should complete without errors
+</Check>
+</Step>
+</Steps>
 </Accordion>
 
-<Accordion title="MinIO Local Development Issues">
-**Error**: MinIO connection fails during local development.
+<Accordion title="MinIO local development issues" icon="hard-drive">
+**Symptoms**: MinIO connection fails or bucket access denied during local development
 
+**Fix MinIO issues**:
+
+<Steps>
+<Step title="Check MinIO status">
 ```bash
-# Check MinIO status
+# Verify MinIO container is running
 docker ps | grep minio
 docker logs minio-container
 
-# Access MinIO console
-open http://localhost:9001
-
-# Test MinIO connectivity
+# Test MinIO health
 curl -f http://localhost:9000/minio/health/live
+```
+</Step>
 
-# Reset MinIO data
+<Step title="Access MinIO console">
+1. Open [http://localhost:9001](http://localhost:9001) in your browser
+2. Login with:
+   - **Username**: `screenshothis-access-key`
+   - **Password**: `screenshothis-secret-key`
+3. Create the bucket `screenshothis-bucket` if it doesn't exist
+</Step>
+
+<Step title="Reset MinIO if needed">
+```bash
+# Stop and remove MinIO data
 docker-compose down
 docker volume rm $(docker volume ls -q | grep minio)
-docker-compose up -d
+
+# Start fresh
+docker-compose up -d minio
+
+# Wait for startup, then create bucket via console
+```
+</Step>
+</Steps>
+
+**Verify configuration**:
+```bash
+# Check environment variables match MinIO setup
+echo $AWS_ACCESS_KEY_ID      # Should be: screenshothis-access-key
+echo $AWS_SECRET_ACCESS_KEY  # Should be: screenshothis-secret-key
+echo $AWS_URL                # Should be: http://localhost:9000
+```
+</Accordion>
+</AccordionGroup>
+
+## Screenshot generation problems
+
+### Capture failures and timeouts
+
+When screenshots fail to generate or take too long:
+
+<AccordionGroup>
+<Accordion title="Screenshot timeouts" icon="clock">
+**Symptoms**: `Screenshot generation timed out` or requests timing out
+
+**Diagnose performance**:
+```bash
+# Monitor system resources
+docker stats screenshothis
+
+# Check screenshot processing logs
+docker logs -f screenshothis | grep -i screenshot
+
+# Monitor concurrent operations
+docker exec screenshothis ps aux | grep chrome
 ```
 
-**Steps to fix**:
-1. Ensure MinIO container is running
-2. Create the bucket in MinIO console
-3. Verify environment variables match MinIO settings
-</Accordion>
-
-### 5. Screenshot Generation Issues
-
-#### Symptoms
-- Screenshots fail to generate
-- Timeout errors
-- Memory issues
-
-#### Solutions
-
-<Accordion title="Screenshot Timeouts">
-**Error**: `Screenshot generation timed out`
-
+**Optimize performance**:
 ```bash
 # Increase timeout in environment variables
 echo "SCREENSHOT_TIMEOUT=60000" >> .env.production
 
-# Check system resources
-docker stats
+# Reduce concurrent screenshots if system is overloaded
+echo "MAX_CONCURRENT_SCREENSHOTS=5" >> .env.production
 
-# Monitor screenshot generation
-docker logs -f screenshothis | grep screenshot
+# Optimize default screenshot settings
+echo "MAX_SCREENSHOT_WIDTH=1920" >> .env.production
+echo "MAX_SCREENSHOT_HEIGHT=1080" >> .env.production
 ```
 
-**Optimization**:
-```bash
-# Reduce concurrent screenshots
-MAX_CONCURRENT_SCREENSHOTS=5
-
-# Optimize screenshot settings
-MAX_SCREENSHOT_WIDTH=1920
-MAX_SCREENSHOT_HEIGHT=1080
-```
+**System requirements**: Ensure adequate resources:
+- **CPU**: At least 2 cores for production
+- **RAM**: Minimum 2GB, recommended 4GB+
+- **Disk**: At least 5GB free space
 </Accordion>
 
-<Accordion title="Memory Issues">
-**Error**: Out of memory errors or container restarts.
+<Accordion title="Memory issues and crashes" icon="memory">
+**Symptoms**: Out of memory errors, container restarts, or system freezes
 
+**Monitor memory usage**:
 ```bash
-# Check memory usage
-docker stats screenshothis
+# Check container memory usage
+docker stats screenshothis --no-stream
 
-# Increase Docker memory limits
-docker run -m 2g screenshothis:latest
+# Check system memory
+free -h
+df -h
+```
 
+**Fix memory issues**:
+
+<Tabs>
+<Tab title="Docker Compose">
+```yaml
 # In docker-compose.yml
 services:
   screenshothis:
@@ -335,27 +511,65 @@ services:
         reservations:
           memory: 1G
 ```
+</Tab>
+
+<Tab title="Docker Run">
+```bash
+# Run with memory limits
+docker run -m 2g --memory-swap 2g screenshothis:latest
+```
+</Tab>
+
+<Tab title="Kubernetes">
+```yaml
+# In deployment.yaml
+resources:
+  requests:
+    memory: "1Gi"
+    cpu: "500m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+```
+</Tab>
+</Tabs>
+
+**Memory optimization**:
+```bash
+# Reduce concurrent operations
+MAX_CONCURRENT_SCREENSHOTS=3
+
+# Enable garbage collection
+NODE_OPTIONS="--max-old-space-size=1024 --gc-interval=100"
+
+# Optimize Chrome memory usage
+CHROMIUM_ARGS="--memory-pressure-off --max_old_space_size=1024"
+```
 </Accordion>
 
-<Accordion title="Chromium Issues">
-**Error**: Chromium fails to start or crashes.
-
-```bash
-# Check if running in Docker with proper security settings
-docker run --security-opt seccomp=unconfined screenshothis
-
-# For Kubernetes, add security context
-securityContext:
-  runAsUser: 1001
-  runAsGroup: 1001
-  capabilities:
-    add:
-      - SYS_ADMIN
-```
+<Accordion title="Chromium browser issues" icon="globe">
+**Symptoms**: Chromium fails to start, crashes, or sandbox errors
 
 **Common Chromium fixes**:
+
+<Steps>
+<Step title="Check security settings">
+For Docker deployments, you may need to adjust security settings:
+
+```bash
+# Run with additional security options
+docker run --security-opt seccomp=unconfined screenshothis
+
+# Or disable sandboxing (less secure)
+docker run --cap-add=SYS_ADMIN screenshothis
+```
+</Step>
+
+<Step title="Verify dependencies">
+Ensure all required system dependencies are installed:
+
 ```dockerfile
-# In Dockerfile, install required dependencies
+# In your Dockerfile, install required packages
 RUN apt-get update && apt-get install -y \
     chromium \
     chromium-sandbox \
@@ -371,79 +585,134 @@ RUN apt-get update && apt-get install -y \
     libxcomposite1 \
     libxdamage1 \
     libxrandr2 \
-    xdg-utils
+    xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
+```
+</Step>
+
+<Step title="Configure Chrome arguments">
+```bash
+# Add Chrome optimization flags
+CHROMIUM_ARGS="--no-sandbox --disable-dev-shm-usage --disable-extensions --disable-gpu"
+```
+</Step>
+</Steps>
+
+**For Kubernetes deployments**:
+```yaml
+# Add security context to pod spec
+securityContext:
+  runAsUser: 1001
+  runAsGroup: 1001
+  capabilities:
+    add:
+      - SYS_ADMIN
 ```
 </Accordion>
+</AccordionGroup>
 
-### 6. Performance Issues
+## Performance optimization
 
-#### Symptoms
-- Slow response times
-- High CPU/memory usage
-- Request timeouts
+### System resource management
 
-#### Solutions
+When your instance is slow or consuming too many resources:
 
-<Accordion title="High Resource Usage">
-**Problem**: Application consuming too much CPU or memory.
-
+<AccordionGroup>
+<Accordion title="High CPU and memory usage" icon="cpu">
+**Monitor resource consumption**:
 ```bash
-# Monitor resource usage
+# Real-time resource monitoring
 docker stats
 htop
+iostat 5
 
 # Check for memory leaks
 docker exec screenshothis node --expose-gc -e "
-  console.log('Memory usage:', process.memoryUsage());
+  console.log('Memory before GC:', process.memoryUsage());
   global.gc();
-  console.log('After GC:', process.memoryUsage());
+  console.log('Memory after GC:', process.memoryUsage());
 "
 ```
 
-**Optimization**:
-```bash
-# Limit concurrent operations
-MAX_CONCURRENT_SCREENSHOTS=5
+**Optimization strategies**:
 
-# Adjust rate limits
+<Tabs>
+<Tab title="Limit Concurrency">
+```bash
+# Reduce concurrent operations
+MAX_CONCURRENT_SCREENSHOTS=5
 RATE_LIMIT_MAX_REQUESTS=50
 RATE_LIMIT_WINDOW_MS=60000
-
-# Enable garbage collection
-NODE_OPTIONS="--max-old-space-size=1024"
 ```
-</Accordion>
+</Tab>
 
-<Accordion title="Slow Screenshot Generation">
-**Problem**: Screenshots take too long to generate.
-
+<Tab title="Optimize Screenshots">
 ```bash
-# Optimize screenshot settings
+# Use more efficient settings
 DEFAULT_VIEWPORT_WIDTH=1280
 DEFAULT_VIEWPORT_HEIGHT=720
 MAX_PAGE_LOAD_TIMEOUT=15000
-
-# Use headless mode optimizations
-CHROMIUM_ARGS="--no-sandbox --disable-dev-shm-usage --disable-extensions"
+SCREENSHOT_TIMEOUT=30000
 ```
+</Tab>
+
+<Tab title="Memory Management">
+```bash
+# Enable garbage collection and memory limits
+NODE_OPTIONS="--max-old-space-size=1024 --gc-interval=100"
+CHROMIUM_ARGS="--memory-pressure-off --disable-extensions"
+```
+</Tab>
+</Tabs>
 </Accordion>
 
-### 7. Network and Connectivity Issues
-
-#### Symptoms
-- External services unreachable
-- DNS resolution failures
-- Firewall blocking connections
-
-#### Solutions
-
-<Accordion title="External Service Connectivity">
-**Error**: Can't reach external databases or S3 services.
-
+<Accordion title="Slow screenshot generation" icon="image">
+**Diagnose slow performance**:
 ```bash
-# Test network connectivity
+# Time screenshot generation
+time curl "http://localhost:3000/v1/screenshots/take?api_key=test&url=https://example.com"
+
+# Monitor Chrome processes
+docker exec screenshothis ps aux | grep chrome
+
+# Check system load
+uptime
+vmstat 5
+```
+
+**Speed optimization**:
+```bash
+# Optimize browser settings for speed
+CHROMIUM_ARGS="--no-sandbox --disable-dev-shm-usage --disable-extensions --disable-images"
+
+# Reduce quality for faster generation
+DEFAULT_QUALITY=70
+MAX_SCREENSHOT_WIDTH=1920
+MAX_SCREENSHOT_HEIGHT=1080
+
+# Optimize page load timeout
+MAX_PAGE_LOAD_TIMEOUT=20000
+```
+</Accordion>
+</AccordionGroup>
+
+## Network and connectivity
+
+### External service connectivity
+
+When you can't reach databases, S3, or other external services:
+
+<AccordionGroup>
+<Accordion title="External service connectivity" icon="network-wired">
+**Test connectivity from your server**:
+```bash
+# Test database connectivity
 ping your-database-host
 telnet your-database-host 5432
+
+# Test S3 connectivity
+ping s3.amazonaws.com
+curl -I https://s3.amazonaws.com
 
 # Check DNS resolution
 nslookup your-database-host
@@ -453,201 +722,320 @@ dig your-database-host
 docker exec screenshothis ping google.com
 docker exec screenshothis curl -v https://s3.amazonaws.com
 ```
-</Accordion>
 
-<Accordion title="Firewall Issues">
-**Error**: Connections blocked by firewall.
+**Fix connectivity issues**:
 
+<Steps>
+<Step title="Check firewall rules">
 ```bash
 # Check firewall status
 sudo ufw status
 
-# Allow required ports
-sudo ufw allow 3000/tcp
-sudo ufw allow out 5432/tcp
-sudo ufw allow out 6379/tcp
-sudo ufw allow out 443/tcp
-
-# Check iptables rules
-sudo iptables -L -n
+# Allow outbound connections
+sudo ufw allow out 5432/tcp  # PostgreSQL
+sudo ufw allow out 6379/tcp  # Redis
+sudo ufw allow out 443/tcp   # HTTPS
+sudo ufw allow out 53/tcp    # DNS
 ```
+</Step>
+
+<Step title="Verify DNS resolution">
+```bash
+# Check DNS servers
+cat /etc/resolv.conf
+
+# Test DNS resolution
+nslookup your-service.com
+dig @8.8.8.8 your-service.com
+```
+</Step>
+
+<Step title="Test with curl">
+```bash
+# Test HTTP connectivity
+curl -v https://your-service.com
+
+# Test with timeout
+curl --connect-timeout 10 https://your-service.com
+```
+</Step>
+</Steps>
 </Accordion>
 
-## Performance Monitoring
+<Accordion title="Firewall and security group issues" icon="shield">
+**Check and configure firewall rules**:
 
-### System Metrics
-
+<Tabs>
+<Tab title="UFW (Ubuntu)">
 ```bash
-# Monitor system resources
-docker stats --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
+# Check current rules
+sudo ufw status numbered
 
-# Check disk usage
-df -h
-docker system df
+# Allow application ports
+sudo ufw allow 3000/tcp
 
-# Monitor network
-nethogs
-iftop
+# Allow outbound database connections
+sudo ufw allow out 5432/tcp
+sudo ufw allow out 6379/tcp
+
+# Reset UFW if needed
+sudo ufw --force reset
+sudo ufw enable
 ```
+</Tab>
 
-### Application Metrics
+<Tab title="iptables">
+```bash
+# Check current rules
+sudo iptables -L -n
+
+# Allow specific ports
+sudo iptables -A INPUT -p tcp --dport 3000 -j ACCEPT
+sudo iptables -A OUTPUT -p tcp --dport 5432 -j ACCEPT
+
+# Save rules (Ubuntu/Debian)
+sudo iptables-save > /etc/iptables/rules.v4
+```
+</Tab>
+
+<Tab title="AWS Security Groups">
+```bash
+# Check security group rules
+aws ec2 describe-security-groups --group-ids sg-your-group-id
+
+# Add inbound rule for port 3000
+aws ec2 authorize-security-group-ingress \
+  --group-id sg-your-group-id \
+  --protocol tcp \
+  --port 3000 \
+  --cidr 0.0.0.0/0
+```
+</Tab>
+</Tabs>
+</Accordion>
+</AccordionGroup>
+
+## Monitoring and diagnostics
+
+### System health monitoring
+
+Set up monitoring to prevent issues before they occur:
+
+<Steps>
+<Step title="Enable health monitoring">
+Create monitoring scripts for system health:
 
 ```bash
-# Enable metrics collection
-ENABLE_METRICS=true
-METRICS_PORT=9090
+# Health check script
+#!/bin/bash
+# save as health-check.sh
+
+echo "=== Screenshothis Health Check ==="
+echo "Timestamp: $(date)"
+
+# Check application health
+echo "Application health:"
+curl -f http://localhost:3000/health && echo " ✓ Healthy" || echo " ✗ Unhealthy"
+
+# Check disk space
+echo "Disk usage:"
+df -h | awk '$5 > 80 {print "WARNING: " $0}'
+
+# Check memory usage
+echo "Memory usage:"
+free -h
+
+# Check Docker containers
+echo "Container status:"
+docker ps --format "table {{.Names}}\t{{.Status}}"
+```
+</Step>
+
+<Step title="Set up automated monitoring">
+Add monitoring to your crontab:
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add these entries:
+# Health check every 5 minutes
+*/5 * * * * /path/to/health-check.sh >> /var/log/screenshothis-health.log 2>&1
+
+# Disk space check every 15 minutes
+*/15 * * * * df -h | awk '$5 > 85 {print "CRITICAL: Disk space low on " $0}' | mail -s "Disk Space Alert" admin@yourdomain.com
+
+# Log rotation check
+0 2 * * * docker logs screenshothis --tail 1000 > /var/log/screenshothis-daily.log
+```
+</Step>
+
+<Step title="Monitor application metrics">
+Enable detailed application monitoring:
+
+```bash
+# Add metrics to environment
+echo "ENABLE_METRICS=true" >> .env.production
+echo "METRICS_PORT=9090" >> .env.production
 
 # View metrics
 curl http://localhost:9090/metrics
 
-# Monitor health endpoints
-watch -n 5 'curl -s http://localhost:3000/health | jq'
+# Monitor specific endpoints
+watch -n 5 'curl -s http://localhost:3000/health | jq .'
 ```
+</Step>
+</Steps>
 
-## Debugging Tools
+## Getting help and support
 
-### Enable Debug Logging
+When you need additional assistance:
 
+<CardGroup cols={2}>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/screenshothis/screenshothis/issues">
+    Search existing issues or create a new one with detailed error information
+  </Card>
+  <Card title="Community Discussions" icon="message-circle" href="https://github.com/screenshothis/screenshothis/discussions">
+    Join community discussions for questions and ideas
+  </Card>
+  <Card title="Documentation" icon="book" href="/self-host">
+    Browse complete self-hosting documentation and guides
+  </Card>
+  <Card title="Configuration Reference" icon="settings" href="/self-host/configuration">
+    Check all available configuration options and examples
+  </Card>
+</CardGroup>
+
+### Collecting diagnostic information
+
+When reporting issues, include this diagnostic information:
+
+<Steps>
+<Step title="System information">
 ```bash
-# Set debug log level
-LOG_LEVEL=debug
-
-# Enable verbose logging for specific components
-DEBUG=screenshothis:*
-
-# View structured logs
-docker logs screenshothis | jq '.'
+# Collect system details
+echo "=== System Information ===" > diagnostic.txt
+uname -a >> diagnostic.txt
+docker version >> diagnostic.txt
+docker-compose version >> diagnostic.txt
+lsb_release -a >> diagnostic.txt 2>/dev/null
 ```
+</Step>
 
-### Database Debugging
-
+<Step title="Application logs">
 ```bash
-# Open database studio
-pnpm run db:studio
-
-# Run SQL queries
-psql $DATABASE_URL -c "SELECT * FROM screenshots LIMIT 10;"
-
-# Check database performance
-psql $DATABASE_URL -c "
-  SELECT query, calls, total_time, mean_time
-  FROM pg_stat_statements
-  ORDER BY total_time DESC
-  LIMIT 10;
-"
+# Collect recent application logs
+echo "=== Application Logs ===" >> diagnostic.txt
+docker logs screenshothis --tail 200 >> diagnostic.txt
 ```
+</Step>
 
-### Storage Debugging
-
+<Step title="Configuration (redacted)">
 ```bash
-# Test S3 operations
-aws s3 cp test.txt s3://your-bucket/test.txt
-aws s3 ls s3://your-bucket/
-aws s3 rm s3://your-bucket/test.txt
-
-# MinIO debugging
-mc alias set local http://localhost:9000 access-key secret-key
-mc ls local/screenshothis-bucket
+# Collect environment variables (remove sensitive data)
+echo "=== Environment Configuration ===" >> diagnostic.txt
+env | grep -v PASSWORD | grep -v SECRET | grep -v KEY | sort >> diagnostic.txt
 ```
+</Step>
 
-## Environment-Specific Issues
-
-### Docker Compose Issues
-
+<Step title="Container status">
 ```bash
-# View all container logs
-docker-compose logs
-
-# Recreate containers
-docker-compose down
-docker-compose up -d --force-recreate
-
-# Check service dependencies
-docker-compose config --services
-docker-compose ps
+# Collect container information
+echo "=== Container Status ===" >> diagnostic.txt
+docker ps -a >> diagnostic.txt
+docker stats --no-stream >> diagnostic.txt
 ```
+</Step>
+</Steps>
 
-### Kubernetes Issues
+## Prevention and maintenance
 
-```bash
-# Check pod status
-kubectl get pods -n screenshothis
+### Regular maintenance tasks
 
-# Describe pod for events
-kubectl describe pod <pod-name> -n screenshothis
+Keep your Screenshothis instance healthy with regular maintenance:
 
-# View pod logs
-kubectl logs -f <pod-name> -n screenshothis
-
-# Check service endpoints
-kubectl get endpoints -n screenshothis
-```
-
-## Getting Help
-
-### Collecting Debug Information
-
-When reporting issues, include:
-
-```bash
-# System information
-docker version
-docker-compose version
-uname -a
-
-# Application logs
-docker logs screenshothis --tail 100
-
-# Environment variables (remove sensitive data)
-env | grep -v PASSWORD | grep -v SECRET | sort
-
-# Container status
-docker ps -a
-docker stats --no-stream
-```
-
-### Reporting Issues
-
-1. **Check existing issues**: [GitHub Issues](https://github.com/screenshothis/screenshothis/issues)
-2. **Use issue template**: Provide clear reproduction steps
-3. **Include logs**: Relevant error messages and stack traces
-4. **Describe environment**: OS, Docker version, deployment method
-
-### Community Support
-
-- **GitHub Discussions**: For questions and community help
-- **GitHub Issues**: For bug reports and feature requests
-- **Email Support**: support@screenshothis.com
-
-## Prevention Tips
-
-### Regular Maintenance
+<AccordionGroup>
+<Accordion title="Weekly maintenance" icon="calendar">
+**Perform these tasks weekly**:
 
 ```bash
 # Clean up Docker resources
 docker system prune -f
 
-# Update base images
+# Check log file sizes
+du -sh /var/log/
+docker logs screenshothis --tail 1 | wc -l
+
+# Update base images (when needed)
 docker pull postgres:15
 docker pull redis:7-alpine
 
-# Backup database regularly
-pg_dump $DATABASE_URL > backup_$(date +%Y%m%d).sql
+# Backup database
+pg_dump "$DATABASE_URL" > backup_$(date +%Y%m%d).sql
 ```
+</Accordion>
 
-### Monitoring Setup
+<Accordion title="Monthly maintenance" icon="tools">
+**Perform these tasks monthly**:
 
 ```bash
-# Set up health checks
-*/5 * * * * curl -f http://localhost:3000/health || echo "Health check failed"
+# Update system packages
+sudo apt update && sudo apt upgrade -y
 
-# Monitor disk space
-*/15 * * * * df -h | awk '$5 > 80 {print "Disk space warning: " $0}'
+# Check SSL certificate expiry
+echo | openssl s_client -connect yourdomain.com:443 2>/dev/null | openssl x509 -noout -dates
 
-# Monitor logs for errors
-*/10 * * * * docker logs screenshothis --tail 100 | grep -i error
+# Review resource usage trends
+docker stats --no-stream
+df -h
+
+# Test backup restoration
+# (Test this in a separate environment)
 ```
+</Accordion>
 
----
+<Accordion title="Monitoring alerts" icon="bell">
+**Set up alerts for**:
 
-**Still having issues?** [Open an issue](https://github.com/screenshothis/screenshothis/issues) on GitHub with detailed information about your problem.
+- Disk space > 85% full
+- Memory usage > 90%
+- Health check failures
+- SSL certificate expiry (30 days before)
+- High error rates in logs
+- Database connection failures
+
+**Example alert script**:
+```bash
+#!/bin/bash
+# save as alert-check.sh
+
+# Check disk space
+DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+if [ $DISK_USAGE -gt 85 ]; then
+    echo "ALERT: Disk usage is ${DISK_USAGE}%" | mail -s "Disk Space Alert" admin@yourdomain.com
+fi
+
+# Check if application is responding
+if ! curl -f http://localhost:3000/health >/dev/null 2>&1; then
+    echo "ALERT: Screenshothis health check failed" | mail -s "Health Check Alert" admin@yourdomain.com
+fi
+```
+</Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration Guide" icon="settings" href="/self-host/configuration">
+    Optimize your configuration for better performance and reliability
+  </Card>
+  <Card title="Deployment Guide" icon="rocket" href="/self-host/deployment">
+    Learn advanced deployment strategies and scaling options
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Complete API documentation for your self-hosted instance
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/screenshothis/screenshothis">
+    Report issues and contribute to the project
+  </Card>
+</CardGroup>

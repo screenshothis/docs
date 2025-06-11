@@ -1,147 +1,220 @@
 ---
 title: "Self-host Screenshothis"
 sidebarTitle: "Self-host"
-description: "Run Screenshothis on your own infrastructure with full control and customization."
+description: "Run Screenshothis on your own infrastructure with complete control and customization."
 ---
 
 # Self-host Screenshothis
 
-Want to run Screenshothis on your own infrastructure? This guide covers everything you need to know to deploy and manage your own instance.
+Take complete control of your screenshot infrastructure by running Screenshothis on your own servers. This guide walks you through everything from local development setup to production deployment.
 
 <Warning>
 **Important**: Always refer to the official [Screenshothis repository](https://github.com/screenshothis/screenshothis) for the most up-to-date setup instructions, environment variables, and configuration requirements. The repository README and `.env.example` files contain the definitive setup information.
 </Warning>
 
 <Note>
-**Why self-host?** While we recommend using our hosted service for simplicity and reliability, self-hosting gives you complete control over your data, customization options, and eliminates any external dependencies.
+**Why self-host?** While our hosted service provides simplicity and reliability, self-hosting gives you complete data control, unlimited customization options, and eliminates external dependencies.
 </Note>
 
-## Project Architecture
+## Project architecture
 
-Screenshothis is built as a **monorepo** using modern technologies:
+Screenshothis uses a modern **monorepo** architecture built with TypeScript:
 
-- **Backend API** (`apps/server`) — Hono + tRPC API with TypeScript
-- **Frontend Web App** (`apps/web`) — React with TanStack Start and TailwindCSS
-- **Shared Packages** (`packages/*`) — Common schemas, utilities, and types
-- **Database** — PostgreSQL with Drizzle ORM
-- **File Storage** — S3-compatible storage for screenshots
-- **Caching** — Redis for rate limiting and session management
+<CardGroup cols={2}>
+  <Card title="Backend API" icon="server">
+    **Location**: `apps/server`
 
-## Technology Stack
+    Hono + tRPC API with TypeScript for fast, type-safe screenshot generation
+  </Card>
+  <Card title="Frontend Web App" icon="globe">
+    **Location**: `apps/web`
 
-| Component | Technology |
-|-----------|------------|
-| **Runtime** | Node.js + TypeScript |
-| **API Framework** | Hono + tRPC |
-| **Frontend** | React + TanStack Start |
-| **Database** | PostgreSQL + Drizzle ORM |
-| **File Storage** | S3-compatible storage (AWS S3, DigitalOcean Spaces, etc.) |
-| **Cache/Sessions** | Redis |
-| **Styling** | TailwindCSS |
-| **Linting/Formatting** | Biome |
-| **Package Manager** | pnpm |
-| **Monorepo** | Turborepo |
-| **Containerization** | Docker + Docker Compose |
+    React with TanStack Start and TailwindCSS for the dashboard and playground
+  </Card>
+  <Card title="Shared Packages" icon="package">
+    **Location**: `packages/*`
+
+    Common schemas, utilities, and types shared across applications
+  </Card>
+  <Card title="Infrastructure" icon="database">
+    **Dependencies**
+
+    PostgreSQL, Redis, and S3-compatible storage for complete functionality
+  </Card>
+</CardGroup>
+
+## Technology stack
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Runtime** | Node.js + TypeScript | Fast, type-safe execution |
+| **API Framework** | Hono + tRPC | Lightweight, type-safe API |
+| **Frontend** | React + TanStack Start | Modern, fast web interface |
+| **Database** | PostgreSQL + Drizzle ORM | Reliable data persistence |
+| **File Storage** | S3-compatible storage | Screenshot and asset storage |
+| **Cache/Sessions** | Redis | Fast caching and session management |
+| **Styling** | TailwindCSS | Utility-first CSS framework |
+| **Linting/Formatting** | Biome | Fast, consistent code formatting |
+| **Package Manager** | pnpm | Efficient dependency management |
+| **Monorepo** | Turborepo | Fast, scalable build system |
+| **Containerization** | Docker + Docker Compose | Easy deployment and scaling |
 
 ## Prerequisites
 
-Before you begin, ensure you have:
+Before you begin, ensure you have these tools installed:
 
-- **Node.js** (v18 or later)
-- **pnpm** package manager
-- **Docker** and **Docker Compose** (for databases)
-- **Git** for cloning the repository
+<Steps>
+<Step title="Install Node.js">
+Download and install **Node.js v18 or later** from [nodejs.org](https://nodejs.org)
 
-## Quick Setup
+<Check>
+Verify your installation: `node --version` should show v18.0.0 or higher
+</Check>
+</Step>
 
-### 1. Clone the Repository
+<Step title="Install pnpm">
+Install the pnpm package manager:
 
+```bash
+npm install -g pnpm
+```
+
+<Check>
+Verify: `pnpm --version` should show the installed version
+</Check>
+</Step>
+
+<Step title="Install Docker">
+Download and install [Docker Desktop](https://docs.docker.com/get-docker/) for your operating system
+
+<Check>
+Verify: `docker --version` and `docker-compose --version` should both work
+</Check>
+</Step>
+
+<Step title="Install Git">
+Ensure Git is installed for cloning the repository
+
+<Check>
+Verify: `git --version` should show your Git installation
+</Check>
+</Step>
+</Steps>
+
+## Quick setup
+
+Get Screenshothis running locally in under 10 minutes:
+
+<Steps>
+<Step title="Clone the repository">
 ```bash
 git clone https://github.com/screenshothis/screenshothis.git
 cd screenshothis
 ```
 
-### 2. Install Dependencies
+<Check>
+You should now be in the screenshothis directory with all source code
+</Check>
+</Step>
 
+<Step title="Install dependencies">
 ```bash
 pnpm install
 ```
 
-### 3. Start Supporting Services
+This installs all dependencies for the entire monorepo using pnpm workspaces.
 
-Start PostgreSQL, Redis, and optionally MinIO for local storage testing:
+<Check>
+You should see "Dependencies installed" and no error messages
+</Check>
+</Step>
+
+<Step title="Start supporting services">
+Launch PostgreSQL, Redis, and MinIO (for local storage):
 
 ```bash
 docker-compose up -d
 ```
 
-This will start:
+This starts:
 - **PostgreSQL** on `localhost:5432`
 - **Redis** on `localhost:6379`
-- **MinIO** on `localhost:9000` (API) and `localhost:9001` (Console) - *for local development only*
+- **MinIO** (S3-compatible) on `localhost:9000` (API) and `localhost:9001` (Console)
 
-### 4. Configure Environment Variables
+<Check>
+Verify services: `docker-compose ps` should show all services as "Up"
+</Check>
+</Step>
 
-Copy the example environment files and configure them:
+<Step title="Configure environment variables">
+Copy and customize the environment files:
 
 ```bash
 # Server environment
 cp apps/server/.env.example apps/server/.env
 
-# Web environment (if needed)
+# Web environment (optional)
 cp apps/web/.env.example apps/web/.env
 ```
 
-### 5. Set Up the Database
+The default values work for local development with Docker Compose.
 
-Push the database schema and run migrations:
+<Tip>
+You can customize settings later. The defaults are configured to work with the Docker services.
+</Tip>
+</Step>
+
+<Step title="Set up the database">
+Apply the database schema:
 
 ```bash
 pnpm run db:push
 ```
 
-### 6. Configure S3-Compatible Storage
+This creates all necessary tables in your PostgreSQL database.
 
-**For Local Development (using MinIO):**
+<Check>
+You should see "Schema applied successfully" or similar confirmation
+</Check>
+</Step>
 
-1. **Open MinIO console** at http://localhost:9001
-2. **Login with default credentials**:
+<Step title="Configure local storage">
+Set up MinIO for local screenshot storage:
+
+1. **Open MinIO console** at [http://localhost:9001](http://localhost:9001)
+2. **Login with credentials**:
    - **Username**: `screenshothis-access-key`
    - **Password**: `screenshothis-secret-key`
-3. **Create a bucket** named `screenshothis-bucket` (or match your `AWS_BUCKET` env var)
-4. **Verify MinIO is accessible**:
-   - MinIO API: http://localhost:9000
-   - MinIO Console: http://localhost:9001
+3. **Create a bucket** named `screenshothis-bucket`
+4. **Verify access** - you should see the empty bucket
 
-**For Production:**
+<Info>
+MinIO provides S3-compatible storage for local development. For production, use AWS S3, DigitalOcean Spaces, or another S3-compatible service.
+</Info>
+</Step>
 
-Use any S3-compatible storage service:
-- **AWS S3** (recommended)
-- **DigitalOcean Spaces**
-- **Cloudflare R2**
-- **Backblaze B2**
-- Or any other S3-compatible provider
-
-<Note>
-**MinIO is only for local development/testing**. MinIO data will be persisted in a Docker volume named `minio_data`. To manage the local MinIO instance:
-- **Stop MinIO**: `docker-compose down`
-- **View MinIO logs**: `docker-compose logs minio`
-- **Restart MinIO**: `docker-compose restart minio`
-</Note>
-
-### 7. Start the Applications
+<Step title="Start the applications">
+Launch both the web interface and API server:
 
 ```bash
 pnpm run dev
 ```
 
-This starts both applications:
-- **Web UI**: http://localhost:3001
-- **API Server**: http://localhost:3000
+This starts:
+- **Web UI**: [http://localhost:3001](http://localhost:3001)
+- **API Server**: [http://localhost:3000](http://localhost:3000)
 
-## Environment Configuration
+<Check>
+Visit both URLs to verify everything is working. You should see the Screenshothis interface and API health check.
+</Check>
+</Step>
+</Steps>
 
-### Server Environment (`apps/server/.env`)
+## Environment configuration
+
+### Server environment (`apps/server/.env`)
+
+Configure the server with these essential variables:
 
 ```bash
 # Database Configuration
@@ -165,7 +238,7 @@ AWS_URL=http://localhost:9000
 AWS_ENDPOINT=http://localhost:9000
 AWS_USE_PATH_STYLE_ENDPOINT=true
 
-# For production (real S3-compatible service):
+# For production, replace with your S3-compatible service:
 # AWS_ACCESS_KEY_ID=your-actual-access-key
 # AWS_SECRET_ACCESS_KEY=your-actual-secret-key
 # AWS_REGION=us-east-1
@@ -179,7 +252,8 @@ PORT=3000
 NODE_ENV=development
 
 # Authentication & Security
-JWT_SECRET=your-super-secure-jwt-secret-key-here
+BETTER_AUTH_SECRET=your-super-secure-auth-secret-key-here
+DEFAULT_API_KEY_PREFIX=ss
 
 # Rate Limiting & Security
 RATE_LIMIT_WINDOW_MS=60000
@@ -191,17 +265,16 @@ MAX_SCREENSHOT_WIDTH=3840
 MAX_SCREENSHOT_HEIGHT=2160
 
 # Request Limits (Security)
-# Header size limit: 8KB (8192 characters)
-# Cookie size limit: 4KB (4096 characters)
-MAX_HEADER_SIZE=8192
-MAX_COOKIE_SIZE=4096
+MAX_HEADER_SIZE=8192  # 8KB header limit
+MAX_COOKIE_SIZE=4096  # 4KB cookie limit
 
 # CSP Bypass Auditing
-# When bypass_csp=true is used, events are audit-logged server-side
-AUDIT_CSP_BYPASS=true
+AUDIT_CSP_BYPASS=true  # Log when bypass_csp=true is used
 ```
 
-### Web Environment (`apps/web/.env`)
+### Web environment (`apps/web/.env`)
+
+Configure the web interface:
 
 ```bash
 # API Configuration
@@ -211,157 +284,368 @@ VITE_API_URL=http://localhost:3000
 NODE_ENV=development
 ```
 
-## Available Scripts
+<Warning>
+**Production security**: Always use strong, unique passwords and secrets for production deployments. Never use the default development values.
+</Warning>
 
-From the **root directory**:
+## Available scripts
 
-| Script | Description |
-|--------|-------------|
+Run these commands from the **root directory**:
+
+### Development scripts
+
+| Command | Description |
+|---------|-------------|
 | `pnpm install` | Install all dependencies for the monorepo |
 | `pnpm run dev` | Start both web and server in development mode |
 | `pnpm run dev:web` | Start only the web (frontend) application |
 | `pnpm run dev:server` | Start only the server (backend) application |
+
+### Build and production scripts
+
+| Command | Description |
+|---------|-------------|
 | `pnpm run build` | Build all applications for production |
-| `pnpm run check-types` | Run TypeScript type checking across all packages |
+| `pnpm run start` | Start production builds (after building) |
+
+### Database management scripts
+
+| Command | Description |
+|---------|-------------|
 | `pnpm run db:push` | Apply Drizzle schema changes to the database |
 | `pnpm run db:studio` | Open Drizzle Studio to view and manage the database |
+| `pnpm run db:generate` | Generate migration files for schema changes |
+| `pnpm run db:migrate` | Apply migrations to the database |
+
+### Code quality scripts
+
+| Command | Description |
+|---------|-------------|
+| `pnpm run check-types` | Run TypeScript type checking across all packages |
 | `pnpm run check` | Run Biome linting and formatting checks |
 | `pnpm run format` | Apply Biome formatting to the codebase |
 | `pnpm run lint` | Run Biome linting checks |
-| `pnpm run lint:fix` | Run Biome linting and attempt to fix issues automatically |
+| `pnpm run lint:fix` | Run Biome linting and fix issues automatically |
 
-## Production Deployment
+## Production deployment
 
-### Docker Production Setup
+### Docker production setup
 
-1. **Build production images:**
+Build and deploy production-ready Docker images:
+
+<Steps>
+<Step title="Build production images">
 ```bash
+# Build server image
 docker build -f apps/server/Dockerfile -t screenshothis-server .
+
+# Build web interface image
 docker build -f apps/web/Dockerfile -t screenshothis-web .
 ```
+</Step>
 
-2. **Use production environment variables**
-3. **Set up external PostgreSQL and Redis**
-4. **Configure S3-compatible storage** (AWS S3, DigitalOcean Spaces, Cloudflare R2, etc.)
-5. **Configure reverse proxy** (nginx, Traefik, etc.)
-6. **Set up SSL certificates**
+<Step title="Set up external services">
+Configure production-grade external services:
 
-### Environment Variables for Production
+- **PostgreSQL**: Use managed PostgreSQL (AWS RDS, DigitalOcean Managed Databases, etc.)
+- **Redis**: Use managed Redis (AWS ElastiCache, DigitalOcean Managed Redis, etc.)
+- **S3 Storage**: Use AWS S3, DigitalOcean Spaces, Cloudflare R2, or Backblaze B2
+</Step>
+
+<Step title="Configure production environment">
+Create production environment files with:
+
+- Strong, unique passwords and secrets
+- Production database connections
+- Production S3-compatible storage credentials
+- Appropriate rate limits and timeouts
+</Step>
+
+<Step title="Set up infrastructure">
+Configure your production infrastructure:
+
+- **Reverse proxy**: nginx, Traefik, or cloud load balancer
+- **SSL certificates**: Let's Encrypt, cloud provider, or custom certificates
+- **Container orchestration**: Docker Compose, Kubernetes, or cloud container services
+</Step>
+</Steps>
+
+### Environment variables for production
 
 Ensure these are properly configured for production:
 
-- Use strong, unique passwords and secrets
-- Configure proper database connections
-- **Set up production S3-compatible storage**:
-  - AWS S3 (recommended)
-  - DigitalOcean Spaces
-  - Cloudflare R2
-  - Backblaze B2
-  - Any other S3-compatible provider
-- Configure Redis for production use
-- Set appropriate rate limits and timeouts
+<ParamField path="BETTER_AUTH_SECRET" type="string" required>
+Strong, unique secret for authentication. Generate with `openssl rand -base64 32`
+</ParamField>
 
-## Security Considerations
+<ParamField path="DATABASE_URL" type="string" required>
+Connection string for your production PostgreSQL database
+</ParamField>
+
+<ParamField path="REDIS_URL" type="string" required>
+Connection string for your production Redis instance
+</ParamField>
+
+<ParamField path="AWS_ACCESS_KEY_ID" type="string" required>
+Access key for your S3-compatible storage service
+</ParamField>
+
+<ParamField path="AWS_SECRET_ACCESS_KEY" type="string" required>
+Secret key for your S3-compatible storage service
+</ParamField>
+
+<ParamField path="AWS_BUCKET" type="string" required>
+Name of your production storage bucket
+</ParamField>
+
+## Security considerations
 
 <Warning>
-When self-hosting, you're responsible for:
-- Keeping dependencies updated
-- Securing your database and Redis instances
-- Configuring proper authentication
-- Setting up SSL/TLS encryption
-- Managing backups and disaster recovery
-- Monitoring and logging
+When self-hosting, you're responsible for security, updates, backups, and monitoring. Ensure you have proper security measures in place.
 </Warning>
 
-### Built-in Security Features
+### Built-in security features
 
-Screenshothis includes several security measures that you should be aware of:
+Screenshothis includes several security measures:
 
-- **Request Size Limits**:
-  - Header size limit: 8 KB (8192 characters) per request
-  - Cookie size limit: 4 KB (4096 characters) per request
-- **Rate Limiting**: Screenshot generation is limited via `requestLimits` and enforced per-user
-- **CSP Bypass Auditing**: Every time `bypass_csp=true` is used, the event is audit-logged server-side for security review
-- **Input Validation**: All API inputs are validated using Zod schemas
+<AccordionGroup>
+<Accordion title="Request size limits" icon="shield">
+- **Header size limit**: 8 KB (8192 characters) per request
+- **Cookie size limit**: 4 KB (4096 characters) per request
+- **URL length limit**: Standard browser limits (2048 characters)
+- **Request timeout**: 30 seconds maximum
 
-These constraints ensure reliable performance and mitigate abuse vectors following RFC 7230 and common security best practices.
+These limits prevent abuse and ensure consistent performance.
+</Accordion>
 
-## Database Management
+<Accordion title="Rate limiting" icon="clock">
+- Screenshot generation is limited per user
+- Configurable rate limits via environment variables
+- Built-in protection against abuse
 
-### View Database with Drizzle Studio
+Monitor rate limit usage and adjust as needed for your use case.
+</Accordion>
+
+<Accordion title="CSP bypass auditing" icon="eye">
+- Every use of `bypass_csp=true` is audit-logged server-side
+- Helps identify potential security issues
+- Enables security review and compliance
+
+Review audit logs regularly for security monitoring.
+</Accordion>
+
+<Accordion title="Input validation" icon="check-circle">
+- All API inputs are validated using Zod schemas
+- URL validation prevents malicious requests
+- Parameter validation ensures data integrity
+
+Input validation helps prevent injection attacks and data corruption.
+</Accordion>
+</AccordionGroup>
+
+### Additional security recommendations
+
+<Steps>
+<Step title="Keep dependencies updated">
+Regularly update Node.js, dependencies, and base Docker images to get security patches.
+</Step>
+
+<Step title="Secure your database">
+- Use strong passwords
+- Enable SSL/TLS connections
+- Restrict network access
+- Regular backups
+</Step>
+
+<Step title="Configure HTTPS">
+- Use SSL/TLS certificates for all connections
+- Configure secure headers
+- Enable HSTS (HTTP Strict Transport Security)
+</Step>
+
+<Step title="Monitor and log">
+- Set up application logging
+- Monitor resource usage
+- Track API usage patterns
+- Set up alerts for unusual activity
+</Step>
+</Steps>
+
+## Database management
+
+### View and manage data
+
+Use Drizzle Studio for a visual database interface:
 
 ```bash
 pnpm run db:studio
 ```
 
-### Database Migrations
+This opens a web interface at `http://localhost:4983` where you can:
+- View all tables and data
+- Edit records
+- Run queries
+- Manage relationships
 
-The project uses Drizzle ORM for database management:
+### Handle schema changes
+
+For development, use the simple approach:
 
 ```bash
-# Push schema changes to database (development)
+# Apply schema changes directly (development only)
 pnpm run db:push
+```
 
-# Generate migration files (when schema changes)
+For production, use migrations:
+
+```bash
+# Generate migration files when schema changes
 pnpm run db:generate
 
 # Apply migrations to database
 pnpm run db:migrate
-
-# Open Drizzle Studio (database GUI)
-pnpm run db:studio
 ```
 
 <Note>
-For development, you typically only need `pnpm run db:push` to apply schema changes directly. Use migrations (`db:generate` and `db:migrate`) for production deployments where you need versioned database changes.
+**Development vs Production**: Use `db:push` for rapid development iteration, but use migrations (`db:generate` and `db:migrate`) for production deployments where you need versioned, reversible database changes.
 </Note>
 
 ## Troubleshooting
 
-### Common Issues
+### Common issues and solutions
 
-**Port conflicts:**
-- Change ports in `docker-compose.yml` and update environment variables accordingly
+<AccordionGroup>
+<Accordion title="Port conflicts" icon="network-wired">
+**Problem**: Services fail to start due to port conflicts
 
-**Database connection errors:**
-- Ensure PostgreSQL container is running: `docker-compose ps`
+**Solutions**:
+- Change ports in `docker-compose.yml`
+- Update environment variables to match new ports
+- Stop conflicting services: `sudo lsof -i :5432` to find what's using PostgreSQL port
+</Accordion>
+
+<Accordion title="Database connection errors" icon="database">
+**Problem**: Cannot connect to PostgreSQL
+
+**Solutions**:
+- Verify PostgreSQL container is running: `docker-compose ps`
 - Check database credentials in environment variables
+- Ensure database exists: `docker-compose exec postgres psql -U screenshothis -d screenshothis`
+- Reset database: `docker-compose down && docker-compose up -d`
+</Accordion>
 
-**S3-compatible storage connection errors:**
-- **For local development**: Verify MinIO container is running and accessible
+<Accordion title="S3 storage connection errors" icon="cloud">
+**Problem**: Screenshot storage not working
+
+**Solutions**:
+- **For local development**: Verify MinIO container is running and accessible at `http://localhost:9001`
 - Check AWS environment variables match your storage configuration
-- **For local development**: Ensure the bucket exists in MinIO console
+- Ensure the bucket exists and has proper permissions
 - **For production**: Verify your S3-compatible service credentials and bucket permissions
+- Test connection: `curl http://localhost:9000/minio/health/live`
+</Accordion>
 
-**Build errors:**
+<Accordion title="Build and dependency errors" icon="package">
+**Problem**: Installation or build failures
+
+**Solutions**:
 - Clear node_modules and reinstall: `rm -rf node_modules && pnpm install`
 - Clear Turborepo cache: `rm -rf .turbo`
 - Check TypeScript types: `pnpm run check-types`
+- Verify Node.js version: `node --version` (should be v18+)
+- Update pnpm: `npm install -g pnpm@latest`
+</Accordion>
+</AccordionGroup>
 
-### Getting Help
+### Getting help
 
-- Check the [GitHub Issues](https://github.com/screenshothis/screenshothis/issues) for common problems
-- Join discussions in the repository
-- Review Docker logs: `docker-compose logs`
+<CardGroup cols={2}>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/screenshothis/screenshothis/issues">
+    Search existing issues or create a new one for bugs and feature requests
+  </Card>
+  <Card title="View Docker Logs" icon="file-text">
+    Check service logs: `docker-compose logs` or `docker-compose logs <service-name>`
+  </Card>
+  <Card title="Community Discussions" icon="message-circle" href="https://github.com/screenshothis/screenshothis/discussions">
+    Join discussions for questions, ideas, and community support
+  </Card>
+  <Card title="Documentation" icon="book" href="https://docs.screenshothis.com">
+    Browse complete documentation for configuration and usage guides
+  </Card>
+</CardGroup>
 
 ## Contributing
 
-Screenshothis is an **open source** project (AGPL-3.0) with **27+ stars** and a growing community. The codebase is primarily **TypeScript** (94.9%) with modern web technologies.
+Screenshothis is an **open source** project (AGPL-3.0) with an active community. Your contributions help make it better for everyone.
 
-Contributions are welcome! See the [GitHub repository](https://github.com/screenshothis/screenshothis) for:
+### Ways to contribute
 
-- **Contributing guidelines** and development workflow
-- **Issue templates** for bug reports and feature requests
-- **Discussion forums** for questions and ideas
-- **Code review process** and coding standards
+<Steps>
+<Step title="Report issues">
+Found a bug or have a feature request? [Create an issue](https://github.com/screenshothis/screenshothis/issues) with detailed information.
+</Step>
 
-### Development Guidelines
+<Step title="Improve documentation">
+Help others by improving documentation, adding examples, or fixing typos.
+</Step>
 
-- Follow the existing code style (Biome handles formatting)
+<Step title="Submit code changes">
+Follow our development guidelines:
+
 - Run `pnpm run check` before committing
-- Ensure TypeScript types are correct (`pnpm run check-types`)
+- Ensure TypeScript types are correct: `pnpm run check-types`
 - Test your changes locally with `pnpm run dev`
-- Use Husky pre-commit hooks (configured automatically)
+- Follow existing code style (Biome handles formatting)
+</Step>
+
+<Step title="Join discussions">
+Participate in [GitHub Discussions](https://github.com/screenshothis/screenshothis/discussions) to share ideas and help other users.
+</Step>
+</Steps>
+
+### Development workflow
+
+<Tabs>
+<Tab title="Quick Fix">
+1. Fork the repository
+2. Create a feature branch: `git checkout -b fix-something`
+3. Make your changes
+4. Test locally: `pnpm run dev`
+5. Submit a pull request
+</Tab>
+
+<Tab title="Feature Development">
+1. Open an issue to discuss the feature
+2. Fork and create a feature branch
+3. Implement the feature with tests
+4. Update documentation
+5. Submit a pull request with detailed description
+</Tab>
+
+<Tab title="Documentation">
+1. Find documentation that needs improvement
+2. Make changes in the relevant `.mdx` files
+3. Test locally if possible
+4. Submit a pull request
+</Tab>
+</Tabs>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration Guide" icon="settings" href="/self-host/configuration">
+    Learn about all environment variables and configuration options
+  </Card>
+  <Card title="Deployment Guide" icon="rocket" href="/self-host/deployment">
+    Production deployment strategies for different platforms
+  </Card>
+  <Card title="Troubleshooting" icon="life-ring" href="/self-host/troubleshooting">
+    Detailed troubleshooting guide for common issues
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Complete API documentation for your self-hosted instance
+  </Card>
+</CardGroup>
 
 ---
 

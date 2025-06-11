@@ -1,52 +1,100 @@
 ---
 title: "Production Deployment"
 sidebarTitle: "Deployment"
-description: "Deploy Screenshothis to production on various platforms and infrastructure providers."
+description: "Deploy your self-hosted Screenshothis instance to production across various platforms and cloud providers."
 ---
 
-# Production Deployment
+# Production deployment guide
 
-This guide covers deploying Screenshothis to production environments across different platforms and infrastructure providers.
+Deploy your Screenshothis instance to production with confidence. This comprehensive guide covers deployment strategies for Docker, Kubernetes, and major cloud platforms, along with security, monitoring, and scaling considerations.
 
 <Note>
-**Important**: Always refer to the [Screenshothis repository](https://github.com/screenshothis/screenshothis) for the latest deployment instructions and configuration requirements.
+**Stay updated**: Always check the [Screenshothis repository](https://github.com/screenshothis/screenshothis) for the latest deployment instructions and platform-specific requirements.
 </Note>
 
-## Pre-Deployment Checklist
+## Pre-deployment checklist
 
-Before deploying to production, ensure you have:
+Ensure you have everything ready before deploying to production:
 
-- [ ] **Database**: PostgreSQL instance (managed or self-hosted)
-- [ ] **Cache**: Redis instance (managed or self-hosted)
-- [ ] **Storage**: S3-compatible storage service configured
-- [ ] **Domain**: Domain name and SSL certificates
-- [ ] **Environment Variables**: All required env vars configured
-- [ ] **Secrets**: Secure JWT secrets and encryption keys
-- [ ] **Monitoring**: Logging and monitoring solution ready
+<Steps>
+<Step title="Infrastructure prerequisites">
+**Database**: Set up a managed PostgreSQL instance or prepare to self-host
+**Cache**: Configure Redis for session management and caching
+**Storage**: Choose and configure an S3-compatible storage service
+**Domain**: Secure your domain name and SSL certificates
+</Step>
 
-## Docker Deployment
+<Step title="Security requirements">
+**Environment variables**: Configure all required settings for production
+**Secrets**: Generate strong, unique secrets for authentication and encryption
+**Access control**: Set up proper IAM roles and security groups
+</Step>
 
-### Single Container
+<Step title="Monitoring setup">
+**Logging**: Prepare centralized logging solution
+**Metrics**: Set up application and infrastructure monitoring
+**Alerts**: Configure alerts for critical system events
+**Health checks**: Plan your health check and uptime monitoring strategy
+</Step>
+</Steps>
 
-The simplest production deployment using Docker:
+## Docker deployment
 
+Choose the Docker deployment strategy that best fits your infrastructure needs:
+
+### Single container deployment
+
+Deploy quickly with a single Docker container for small to medium workloads:
+
+<Steps>
+<Step title="Build your application">
 ```bash
-# Build the application
+# Build the Screenshothis image
 docker build -t screenshothis:latest .
 
-# Run the container
+# Verify the build
+docker images | grep screenshothis
+```
+</Step>
+
+<Step title="Run in production">
+```bash
+# Deploy with production configuration
 docker run -d \
   --name screenshothis \
   --env-file .env.production \
   -p 3000:3000 \
   --restart unless-stopped \
+  --memory="2g" \
+  --cpus="1.0" \
   screenshothis:latest
 ```
 
-### Docker Compose Production Setup
+<Check>
+Your application should be accessible at http://your-server:3000
+</Check>
+</Step>
+
+<Step title="Verify deployment">
+```bash
+# Check container status
+docker ps | grep screenshothis
+
+# Test health endpoint
+curl -f http://localhost:3000/health
+```
+</Step>
+</Steps>
+
+### Multi-container deployment with Docker Compose
+
+Deploy a complete production stack with database, cache, and reverse proxy:
+
+<Steps>
+<Step title="Create production compose file">
+Save this as `docker-compose.prod.yml`:
 
 ```yaml
-# docker-compose.prod.yml
 version: '3.8'
 
 services:
@@ -60,11 +108,20 @@ services:
       - postgres
       - redis
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
   postgres:
     image: postgres:15
@@ -72,13 +129,16 @@ services:
       POSTGRES_DB: screenshothis
       POSTGRES_USER: screenshothis
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
     restart: unless-stopped
+    shm_size: 256mb
 
   redis:
     image: redis:7-alpine
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 512mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
     restart: unless-stopped
@@ -89,65 +149,188 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/ssl/certs
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl/certs:ro
     depends_on:
       - screenshothis
     restart: unless-stopped
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
+```
+</Step>
+
+<Step title="Deploy the stack">
+```bash
+# Start all services
+docker-compose -f docker-compose.prod.yml up -d
+
+# Check service status
+docker-compose -f docker-compose.prod.yml ps
+
+# Follow logs for all services
+docker-compose -f docker-compose.prod.yml logs -f
+```
+</Step>
+
+<Step title="Verify deployment">
+```bash
+# Test application health
+curl -f http://localhost:3000/health
+
+# Check database connection
+docker-compose -f docker-compose.prod.yml exec postgres psql -U screenshothis -d screenshothis -c "SELECT version();"
+
+# Test Redis connection
+docker-compose -f docker-compose.prod.yml exec redis redis-cli ping
 ```
 
-### NGINX Configuration
+<Check>
+All services should report healthy status and respond to connection tests
+</Check>
+</Step>
+</Steps>
+
+### NGINX reverse proxy configuration
+
+Configure NGINX as a reverse proxy with SSL termination and optimizations:
+
+<Steps>
+<Step title="Create NGINX configuration">
+Save this as `nginx.conf`:
 
 ```nginx
-# nginx.conf
 events {
     worker_connections 1024;
+    multi_accept on;
+    use epoll;
 }
 
 http {
+    # Security headers
+    add_header X-Frame-Options DENY always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    # Performance settings
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    gzip on;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript;
+
+    # Rate limiting
+    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+
     upstream screenshothis {
-        server screenshothis:3000;
+        server screenshothis:3000 max_fails=3 fail_timeout=30s;
+        keepalive 32;
     }
 
+    # HTTP to HTTPS redirect
     server {
         listen 80;
         server_name api.yourdomain.com;
         return 301 https://$server_name$request_uri;
     }
 
+    # HTTPS server
     server {
-        listen 443 ssl;
+        listen 443 ssl http2;
         server_name api.yourdomain.com;
 
+        # SSL configuration
         ssl_certificate /etc/ssl/certs/cert.pem;
         ssl_certificate_key /etc/ssl/certs/key.pem;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_prefer_server_ciphers off;
+        ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
 
+        # General settings
         client_max_body_size 10M;
         proxy_read_timeout 60s;
+        proxy_connect_timeout 5s;
 
+        # Main application
         location / {
+            limit_req zone=api burst=20 nodelay;
+
             proxy_pass http://screenshothis;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+            proxy_http_version 1.1;
         }
 
+        # Health checks (no rate limiting)
         location /health {
             proxy_pass http://screenshothis/health;
             access_log off;
+            proxy_set_header Host $host;
+        }
+
+        # Security - block access to sensitive files
+        location ~ /\. {
+            deny all;
+            access_log off;
+            log_not_found off;
         }
     }
 }
 ```
+</Step>
 
-## Kubernetes Deployment
+<Step title="Obtain SSL certificates">
+Set up SSL certificates using Let's Encrypt:
 
-### Namespace and ConfigMap
+```bash
+# Install Certbot
+sudo apt update && sudo apt install certbot python3-certbot-nginx
+
+# Get certificates
+sudo certbot --nginx -d api.yourdomain.com
+
+# Test automatic renewal
+sudo certbot renew --dry-run
+
+# Set up auto-renewal
+echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
+```
+</Step>
+
+<Step title="Test configuration">
+```bash
+# Test NGINX configuration
+docker-compose -f docker-compose.prod.yml exec nginx nginx -t
+
+# Reload NGINX if needed
+docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
+
+# Test SSL and proxy
+curl -I https://api.yourdomain.com/health
+```
+
+<Check>
+You should see SSL certificate information and successful proxy responses
+</Check>
+</Step>
+</Steps>
+
+## Kubernetes deployment
+
+Deploy Screenshothis on Kubernetes for enterprise-grade scalability and reliability:
+
+<Steps>
+<Step title="Create namespace and configuration">
+Set up the Kubernetes namespace and configuration:
 
 ```yaml
 # k8s/namespace.yaml
@@ -155,6 +338,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: screenshothis
+  labels:
+    name: screenshothis
+    environment: production
 
 ---
 # k8s/configmap.yaml
@@ -163,15 +349,23 @@ kind: ConfigMap
 metadata:
   name: screenshothis-config
   namespace: screenshothis
+  labels:
+    app: screenshothis
 data:
   NODE_ENV: "production"
   PORT: "3000"
   LOG_LEVEL: "info"
   MAX_SCREENSHOT_WIDTH: "3840"
   MAX_SCREENSHOT_HEIGHT: "2160"
+  MAX_CONCURRENT_SCREENSHOTS: "20"
+  RATE_LIMIT_MAX_REQUESTS: "1000"
+  RATE_LIMIT_WINDOW_MS: "60000"
+  DEFAULT_API_KEY_PREFIX: "ss_live_"
 ```
+</Step>
 
-### Secrets
+<Step title="Configure secrets">
+Create secrets for sensitive configuration:
 
 ```yaml
 # k8s/secrets.yaml
@@ -180,25 +374,73 @@ kind: Secret
 metadata:
   name: screenshothis-secrets
   namespace: screenshothis
+  labels:
+    app: screenshothis
 type: Opaque
 stringData:
-  DATABASE_URL: "postgresql://user:password@postgres:5432/screenshothis"
-  BETTER_AUTH_SECRET: "your-secure-auth-secret"
+  # Database configuration
+  DATABASE_URL: "postgresql://screenshothis:your-password@postgres.screenshothis:5432/screenshothis"
+
+  # Redis configuration
+  REDIS_URL: "redis://:your-password@redis.screenshothis:6379"
+
+  # Authentication
+  BETTER_AUTH_SECRET: "your-super-secure-random-secret-minimum-32-chars"
+
+  # S3 Storage configuration
   AWS_ACCESS_KEY_ID: "your-s3-access-key"
   AWS_SECRET_ACCESS_KEY: "your-s3-secret-key"
+  AWS_REGION: "us-east-1"
+  AWS_BUCKET: "your-production-bucket"
+  AWS_URL: "https://s3.us-east-1.amazonaws.com"
+
+  # Application URLs
+  APP_URL: "https://api.yourdomain.com"
+  WEB_URL: "https://yourdomain.com"
 ```
 
-### Deployment
+<Warning>
+Replace all placeholder values with your actual production credentials. Never commit secrets to version control.
+</Warning>
+</Step>
+
+<Step title="Apply base configuration">
+```bash
+# Create namespace and base configuration
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secrets.yaml
+
+# Verify resources
+kubectl get all -n screenshothis
+```
+</Step>
+</Steps>
+
+### Application deployment and services
+
+Create the main application deployment with service and ingress:
+
+<Steps>
+<Step title="Create deployment manifest">
+Save this as `k8s/deployment.yaml`:
 
 ```yaml
-# k8s/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: screenshothis
   namespace: screenshothis
+  labels:
+    app: screenshothis
+    version: v1
 spec:
   replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: screenshothis
@@ -206,12 +448,27 @@ spec:
     metadata:
       labels:
         app: screenshothis
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
       - name: screenshothis
         image: screenshothis:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
+          name: http
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
         envFrom:
         - configMapRef:
             name: screenshothis-config
@@ -219,49 +476,88 @@ spec:
             name: screenshothis-secrets
         livenessProbe:
           httpGet:
-            path: /health
+            path: /health/live
             port: 3000
+            scheme: HTTP
           initialDelaySeconds: 30
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health/ready
             port: 3000
+            scheme: HTTP
           initialDelaySeconds: 5
           periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 30
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "500m"
-          limits:
             memory: "1Gi"
-            cpu: "1000m"
+            cpu: "500m"
+            ephemeral-storage: "1Gi"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+            ephemeral-storage: "5Gi"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - SYS_ADMIN  # Required for Chromium
 
 ---
-# k8s/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: screenshothis-service
   namespace: screenshothis
+  labels:
+    app: screenshothis
 spec:
   selector:
     app: screenshothis
   ports:
-  - port: 80
+  - name: http
+    port: 80
     targetPort: 3000
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
   type: ClusterIP
 
 ---
-# k8s/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: screenshothis-ingress
   namespace: screenshothis
+  labels:
+    app: screenshothis
   annotations:
     kubernetes.io/ingress.class: nginx
     cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/rate-limit: "10"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
 spec:
   tls:
   - hosts:
@@ -279,101 +575,256 @@ spec:
             port:
               number: 80
 ```
+</Step>
 
-### Deploy to Kubernetes
-
+<Step title="Deploy to cluster">
 ```bash
-# Apply all configurations
-kubectl apply -f k8s/
+# Apply the deployment
+kubectl apply -f k8s/deployment.yaml
 
-# Check deployment status
-kubectl get pods -n screenshothis
+# Check rollout status
+kubectl rollout status deployment/screenshothis -n screenshothis
 
-# View logs
-kubectl logs -f deployment/screenshothis -n screenshothis
+# Verify pods are running
+kubectl get pods -n screenshothis -l app=screenshothis
+```
+</Step>
+
+<Step title="Verify deployment">
+```bash
+# Check all resources
+kubectl get all -n screenshothis
+
+# Test application health
+kubectl port-forward svc/screenshothis-service 8080:80 -n screenshothis &
+curl -f http://localhost:8080/health
+
+# Check ingress
+kubectl get ingress -n screenshothis
 ```
 
-## Cloud Platform Deployments
+<Check>
+All pods should be in "Running" status and health checks should pass
+</Check>
+</Step>
+</Steps>
 
-### AWS (EC2 + RDS + ElastiCache)
+## Cloud platform deployments
 
+Deploy to popular cloud platforms with platform-specific optimizations:
+
+<Tabs>
+<Tab title="AWS">
+Deploy on AWS using EC2, RDS, and ElastiCache for a fully managed solution:
+
+<Steps>
+<Step title="Set up infrastructure">
 ```bash
-# 1. Launch EC2 instance
+# Create VPC and security groups first (recommended)
+aws ec2 create-vpc --cidr-block 10.0.0.0/16
+aws ec2 create-security-group --group-name screenshothis-sg --description "Screenshothis security group"
+
+# Launch EC2 instance
 aws ec2 run-instances \
   --image-id ami-0abcdef1234567890 \
   --instance-type t3.medium \
   --key-name your-key-pair \
   --security-group-ids sg-903004f8 \
-  --subnet-id subnet-6e7f829e
+  --subnet-id subnet-6e7f829e \
+  --user-data file://install-docker.sh
+```
+</Step>
 
-# 2. Create RDS PostgreSQL instance
+<Step title="Create managed services">
+```bash
+# Create RDS PostgreSQL instance
 aws rds create-db-instance \
   --db-instance-identifier screenshothis-db \
   --db-instance-class db.t3.micro \
   --engine postgres \
+  --engine-version 15.3 \
   --master-username screenshothis \
-  --master-user-password your-password \
-  --allocated-storage 20
+  --master-user-password $(openssl rand -base64 24) \
+  --allocated-storage 20 \
+  --storage-type gp2 \
+  --vpc-security-group-ids sg-your-db-sg
 
-# 3. Create ElastiCache Redis cluster
+# Create ElastiCache Redis cluster
 aws elasticache create-cache-cluster \
   --cache-cluster-id screenshothis-redis \
   --cache-node-type cache.t3.micro \
   --engine redis \
-  --num-cache-nodes 1
+  --engine-version 7.0 \
+  --num-cache-nodes 1 \
+  --security-group-ids sg-your-redis-sg
 ```
+</Step>
 
-### DigitalOcean Droplet
-
+<Step title="Deploy application">
 ```bash
-# Install Docker on Ubuntu droplet
-sudo apt update
-sudo apt install -y docker.io docker-compose
-sudo systemctl start docker
-sudo systemctl enable docker
+# SSH to EC2 instance and deploy
+ssh -i your-key.pem ubuntu@your-ec2-ip
 
-# Clone and deploy
+# Clone and configure
 git clone https://github.com/screenshothis/screenshothis.git
 cd screenshothis
 cp .env.example .env.production
-# Edit .env.production with your settings
+
+# Configure with AWS endpoints
+echo "DATABASE_URL=postgresql://screenshothis:password@your-rds-endpoint:5432/screenshothis" >> .env.production
+echo "REDIS_URL=redis://your-elasticache-endpoint:6379" >> .env.production
+
+# Deploy
 docker-compose -f docker-compose.prod.yml up -d
 ```
+</Step>
+</Steps>
+</Tab>
 
-### Google Cloud Platform (Cloud Run)
+<Tab title="DigitalOcean">
+Deploy on a DigitalOcean droplet with managed database services:
 
+<Steps>
+<Step title="Prepare droplet">
+```bash
+# Create and access your droplet (Ubuntu 22.04)
+# Then install required software
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y docker.io docker-compose-v2 git curl
+
+# Start Docker
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker $USER
+```
+</Step>
+
+<Step title="Set up managed services">
+1. Create a **Managed PostgreSQL Database** in the DigitalOcean control panel
+2. Create a **Managed Redis Cluster**
+3. Set up **Spaces** (S3-compatible storage)
+4. Note down all connection details
+</Step>
+
+<Step title="Deploy application">
+```bash
+# Clone repository
+git clone https://github.com/screenshothis/screenshothis.git
+cd screenshothis
+
+# Configure environment
+cp .env.example .env.production
+# Edit with DigitalOcean service endpoints
+
+# Deploy with optimizations for DO
+docker-compose -f docker-compose.prod.yml up -d
+
+# Set up monitoring
+curl -X POST "https://api.digitalocean.com/v2/monitoring/alerts" \
+  -H "Authorization: Bearer $DO_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"v1/insights/droplet/cpu","compare":"GreaterThan","value":80,"window":"5m"}'
+```
+</Step>
+</Steps>
+</Tab>
+
+<Tab title="Google Cloud">
+Deploy using Cloud Run for serverless scaling:
+
+<Steps>
+<Step title="Prepare Cloud Run Dockerfile">
 ```dockerfile
 # Dockerfile.cloudrun
 FROM node:18-alpine
 
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
+# Install dependencies for Chromium
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
 
+# Create app directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy source code
 COPY . .
+
+# Build application
 RUN npm run build
 
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S screenshothis -u 1001
+USER screenshothis
+
+# Expose port 8080 (Cloud Run requirement)
 EXPOSE 8080
 ENV PORT=8080
 
+# Start application
 CMD ["npm", "start"]
 ```
+</Step>
 
+<Step title="Configure and deploy">
 ```bash
-# Build and deploy to Cloud Run
+# Set up gcloud CLI and authenticate
+gcloud auth login
+gcloud config set project your-project-id
+
+# Build and push to Container Registry
 gcloud builds submit --tag gcr.io/your-project/screenshothis
+
+# Deploy to Cloud Run with configuration
 gcloud run deploy screenshothis \
   --image gcr.io/your-project/screenshothis \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars NODE_ENV=production
+  --memory 2Gi \
+  --cpu 2 \
+  --concurrency 50 \
+  --max-instances 10 \
+  --set-env-vars NODE_ENV=production \
+  --set-env-vars CHROMIUM_ARGS="--no-sandbox --disable-dev-shm-usage"
 ```
+</Step>
 
-### Railway
+<Step title="Add managed services">
+```bash
+# Create Cloud SQL PostgreSQL instance
+gcloud sql instances create screenshothis-db \
+  --database-version=POSTGRES_15 \
+  --tier=db-f1-micro \
+  --region=us-central1
 
+# Create database and user
+gcloud sql databases create screenshothis --instance=screenshothis-db
+gcloud sql users create screenshothis --instance=screenshothis-db --password=your-password
+
+# Set up Cloud Memorystore Redis
+gcloud redis instances create screenshothis-redis \
+  --size=1 \
+  --region=us-central1 \
+  --redis-version=redis_7_0
+```
+</Step>
+</Steps>
+</Tab>
+
+<Tab title="Railway">
+Deploy quickly with zero-configuration deployment:
+
+<Steps>
+<Step title="Prepare Railway configuration">
 ```json
-// railway.json
 {
   "build": {
     "builder": "NIXPACKS"
@@ -381,74 +832,242 @@ gcloud run deploy screenshothis \
   "deploy": {
     "startCommand": "npm start",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 300
+    "healthcheckTimeout": 300,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
   }
 }
 ```
+</Step>
 
-## Environment-Specific Configurations
+<Step title="Configure environment">
+1. Connect your GitHub repository to Railway
+2. Add environment variables in the Railway dashboard:
+   - `NODE_ENV=production`
+   - `DATABASE_URL` (from Railway PostgreSQL addon)
+   - `REDIS_URL` (from Railway Redis addon)
+   - Add your S3 credentials
+3. Enable PostgreSQL and Redis addons
+</Step>
 
-### Production Environment Variables
-
+<Step title="Deploy and monitor">
 ```bash
-# .env.production
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login and deploy
+railway login
+railway link
+railway up
+
+# Monitor deployment
+railway logs
+railway status
+```
+</Step>
+</Steps>
+</Tab>
+</Tabs>
+
+## Production configuration
+
+Configure your environment variables for optimal production performance:
+
+### Essential environment variables
+
+<AccordionGroup>
+<Accordion title="Application settings" icon="gear">
+```bash
+# Core application configuration
 NODE_ENV=production
 PORT=3000
+LOG_LEVEL=info
 
-# Database (use managed service)
-DATABASE_URL=postgresql://user:pass@your-db-host:5432/screenshothis
+# Application URLs
+APP_URL=https://api.yourdomain.com
+WEB_URL=https://yourdomain.com
 
-# Redis (use managed service)
-REDIS_URL=redis://your-redis-host:6379
+# API configuration
+DEFAULT_API_KEY_PREFIX=ss_live_
+ENABLE_METRICS=true
+METRICS_PORT=9090
+```
+</Accordion>
 
-# S3 Storage (use managed service)
+<Accordion title="Database configuration" icon="database">
+```bash
+# PostgreSQL connection (use managed service)
+DATABASE_URL=postgresql://screenshothis:your-password@your-db-host:5432/screenshothis
+
+# Connection pool settings
+DB_CONNECTION_LIMIT=20
+DB_IDLE_TIMEOUT=30000
+DB_CONNECTION_TIMEOUT=10000
+```
+</Accordion>
+
+<Accordion title="Redis configuration" icon="server">
+```bash
+# Redis connection (use managed service)
+REDIS_URL=redis://:your-password@your-redis-host:6379
+
+# Redis settings
+REDIS_KEY_PREFIX=screenshothis:
+REDIS_DEFAULT_TTL=3600
+```
+</Accordion>
+
+<Accordion title="Storage configuration" icon="cloud">
+```bash
+# S3-compatible storage
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
 AWS_REGION=us-east-1
 AWS_BUCKET=your-production-bucket
 AWS_URL=https://s3.us-east-1.amazonaws.com
 
-# Application URLs
-APP_URL=https://api.yourdomain.com
-WEB_URL=https://yourdomain.com
+# Storage settings
+STORAGE_MAX_FILE_SIZE=10485760  # 10MB
+STORAGE_ALLOWED_TYPES=image/png,image/jpeg,application/pdf
+```
+</Accordion>
 
-# Authentication
-BETTER_AUTH_SECRET=super-secure-random-string-for-production
-DEFAULT_API_KEY_PREFIX=ss_live_
+<Accordion title="Security configuration" icon="shield">
+```bash
+# Authentication and encryption
+BETTER_AUTH_SECRET=super-secure-random-string-minimum-32-characters
+JWT_EXPIRY=24h
 
-# Performance
-MAX_CONCURRENT_SCREENSHOTS=20
+# CORS settings
+CORS_ORIGIN=https://yourdomain.com
+CORS_CREDENTIALS=true
+
+# Rate limiting
 RATE_LIMIT_MAX_REQUESTS=1000
-
-# Monitoring
-LOG_LEVEL=info
-ENABLE_METRICS=true
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_SKIP_SUCCESSFUL_REQUESTS=true
 ```
 
-## SSL/TLS Configuration
+<Warning>
+Generate a secure `BETTER_AUTH_SECRET` using: `openssl rand -base64 32`
+</Warning>
+</Accordion>
 
-### Let's Encrypt with Certbot
-
+<Accordion title="Performance tuning" icon="gauge">
 ```bash
-# Install certbot
-sudo apt install certbot python3-certbot-nginx
+# Screenshot generation
+MAX_CONCURRENT_SCREENSHOTS=20
+SCREENSHOT_TIMEOUT=30000
+MAX_SCREENSHOT_WIDTH=3840
+MAX_SCREENSHOT_HEIGHT=2160
+DEFAULT_QUALITY=80
 
-# Get certificate
+# Browser settings
+CHROMIUM_ARGS=--no-sandbox --disable-dev-shm-usage --disable-extensions
+MAX_PAGE_LOAD_TIMEOUT=20000
+
+# Node.js optimization
+NODE_OPTIONS=--max-old-space-size=2048
+UV_THREADPOOL_SIZE=16
+```
+</Accordion>
+</AccordionGroup>
+
+## SSL/TLS configuration
+
+Secure your deployment with proper SSL/TLS certificates:
+
+<Tabs>
+<Tab title="Let's Encrypt (Recommended)">
+<Steps>
+<Step title="Install Certbot">
+```bash
+# Ubuntu/Debian
+sudo apt update && sudo apt install certbot python3-certbot-nginx
+
+# CentOS/RHEL
+sudo yum install certbot python3-certbot-nginx
+```
+</Step>
+
+<Step title="Obtain certificates">
+```bash
+# For NGINX
 sudo certbot --nginx -d api.yourdomain.com
 
-# Auto-renewal
+# For standalone (if not using NGINX)
+sudo certbot certonly --standalone -d api.yourdomain.com
+```
+</Step>
+
+<Step title="Set up auto-renewal">
+```bash
+# Test renewal
+sudo certbot renew --dry-run
+
+# Add to crontab for automatic renewal
 sudo crontab -e
-# Add: 0 12 * * * /usr/bin/certbot renew --quiet
+# Add this line:
+0 12 * * * /usr/bin/certbot renew --quiet --deploy-hook "systemctl reload nginx"
 ```
 
-### Manual SSL Setup
+<Check>
+Your certificates should renew automatically every 90 days
+</Check>
+</Step>
+</Steps>
+</Tab>
+
+<Tab title="Custom Certificate">
+<Steps>
+<Step title="Generate private key and CSR">
+```bash
+# Generate private key
+openssl genrsa -out screenshothis.key 2048
+
+# Generate certificate signing request
+openssl req -new -key screenshothis.key -out screenshothis.csr \
+  -subj "/C=US/ST=State/L=City/O=Organization/CN=api.yourdomain.com"
+```
+</Step>
+
+<Step title="Obtain certificate from CA">
+Submit your CSR to a Certificate Authority (like DigiCert, Comodo, etc.) and download the certificate files.
+</Step>
+
+<Step title="Install certificates">
+```bash
+# Copy certificate files
+sudo cp screenshothis.crt /etc/ssl/certs/
+sudo cp screenshothis.key /etc/ssl/private/
+sudo cp ca-bundle.crt /etc/ssl/certs/
+
+# Set proper permissions
+sudo chmod 644 /etc/ssl/certs/screenshothis.crt
+sudo chmod 600 /etc/ssl/private/screenshothis.key
+```
+</Step>
+</Steps>
+</Tab>
+
+<Tab title="Self-Signed (Development)">
+<Warning>
+Only use self-signed certificates for development or testing environments.
+</Warning>
 
 ```bash
-# Generate SSL certificate (if not using Let's Encrypt)
+# Generate self-signed certificate
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout /etc/ssl/private/screenshothis.key \
-  -out /etc/ssl/certs/screenshothis.crt
+  -out /etc/ssl/certs/screenshothis.crt \
+  -subj "/C=US/ST=State/L=City/O=Organization/CN=api.yourdomain.com"
+
+# Set permissions
+sudo chmod 644 /etc/ssl/certs/screenshothis.crt
+sudo chmod 600 /etc/ssl/private/screenshothis.key
 ```
+</Tab>
+</Tabs>
 
 ## Monitoring and Logging
 
@@ -600,11 +1219,50 @@ psql $DATABASE_URL -c "SELECT version();"
 aws s3 ls s3://your-bucket --region your-region
 ```
 
-## Next Steps
+## Next steps
 
-- [Configuration Guide](/self-host/configuration) - Detailed configuration options
-- [Troubleshooting](/self-host/troubleshooting) - Common issues and solutions
+Complete your deployment with these essential guides:
 
----
+<CardGroup cols={2}>
+  <Card title="Configuration Guide" icon="settings" href="/self-host/configuration">
+    Optimize your production configuration with detailed parameter references and best practices
+  </Card>
+  <Card title="Troubleshooting Guide" icon="wrench" href="/self-host/troubleshooting">
+    Solve common deployment issues with step-by-step diagnostic and resolution procedures
+  </Card>
+  <Card title="API Documentation" icon="code" href="/api-reference/introduction">
+    Integrate with your applications using comprehensive API references and examples
+  </Card>
+  <Card title="Community Support" icon="users" href="https://github.com/screenshothis/screenshothis/discussions">
+    Join discussions, ask questions, and get help from the community
+  </Card>
+</CardGroup>
 
-**Need help?** Check our [troubleshooting guide](/self-host/troubleshooting) or [open an issue](https://github.com/screenshothis/screenshothis/issues) on GitHub.
+### Deployment checklist
+
+Ensure your deployment is production-ready:
+
+- [ ] **Security**: SSL certificates configured and auto-renewal set up
+- [ ] **Monitoring**: Health checks and logging configured
+- [ ] **Backup**: Database backup strategy implemented
+- [ ] **Scaling**: Resource limits and auto-scaling configured
+- [ ] **Testing**: All endpoints tested and responding correctly
+- [ ] **Documentation**: Internal deployment docs updated
+
+### Getting help
+
+<AccordionGroup>
+<Accordion title="Common deployment issues" icon="question-circle">
+- **Application won't start**: Check environment variables and logs
+- **Database connection failed**: Verify connection strings and credentials
+- **SSL certificate issues**: Ensure proper certificate installation and renewal
+- **Performance problems**: Review resource allocation and scaling settings
+</Accordion>
+
+<Accordion title="Support resources" icon="help-circle">
+- **[GitHub Issues](https://github.com/screenshothis/screenshothis/issues)**: Report bugs and request features
+- **[GitHub Discussions](https://github.com/screenshothis/screenshothis/discussions)**: Community support and questions
+- **[Documentation](/self-host)**: Complete self-hosting guides and references
+- **[Troubleshooting Guide](/self-host/troubleshooting)**: Step-by-step problem resolution
+</Accordion>
+</AccordionGroup>
