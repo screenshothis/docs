@@ -23,7 +23,8 @@
                     {
                         "group": "SDKs",
                         "pages": [
-                            "sdk/js"
+                            "sdk/js",
+                            "sdk/php"
                         ]
                     },
                     {

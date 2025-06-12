@@ -1,0 +1,785 @@
+---
+title: 'PHP SDK'
+description: 'Complete guide to the official Screenshothis PHP SDK'
+---
+
+Use the official Screenshothis SDK for PHP applications to capture screenshots with comprehensive error handling, type safety, and optimized performance. The SDK provides a clean object-oriented interface and follows PHP best practices.
+
+## Installation
+
+Install the SDK using Composer:
+
+```bash
+composer require "screenshothis/php"
+```
+
+<Info>
+**PHP version support**: The SDK requires PHP 8.0 or higher. For optimal performance and type safety, we recommend using PHP 8.1 or later.
+</Info>
+
+## Quick start
+
+Get up and running in three simple steps:
+
+<Steps>
+  <Step title="Install with Composer">
+    ```bash
+    composer require "screenshothis/php"
+    ```
+  </Step>
+  <Step title="Initialize client">
+    ```php
+    <?php
+    require_once 'vendor/autoload.php';
+
+    use Screenshothis\Screenshothis;
+
+    $sdk = Screenshothis\Screenshothis::builder()->build();
+    ```
+  </Step>
+  <Step title="Capture your first screenshot">
+    ```php
+    use Screenshothis\Screenshothis\Models\Operations;
+
+    $request = new Operations\TakeScreenshotRequest(
+        apiKey: 'ss_test_1234567890abcdef',
+        url: 'https://example.com'
+    );
+
+    $response = $sdk->takeScreenshot($request);
+    ```
+  </Step>
+</Steps>
+
+## Basic usage
+
+### Simple screenshot
+
+Capture a basic screenshot with minimal configuration:
+
+```php
+<?php
+declare(strict_types=1);
+
+require_once 'vendor/autoload.php';
+
+use Screenshothis\Screenshothis;
+use Screenshothis\Screenshothis\Models\Operations;
+
+$sdk = Screenshothis\Screenshothis::builder()->build();
+
+try {
+    $request = new Operations\TakeScreenshotRequest(
+        apiKey: 'ss_test_1234567890abcdef',
+        url: 'https://github.com'
+    );
+
+    $response = $sdk->takeScreenshot($request);
+
+    if ($response->twoHundredImageJpegBytes !== null) {
+        // Save to file
+        file_put_contents('screenshot.jpg', $response->twoHundredImageJpegBytes);
+        echo "Screenshot saved successfully!\n";
+    }
+} catch (Exception $e) {
+    echo "Screenshot failed: " . $e->getMessage() . "\n";
+}
+```
+
+### Advanced screenshot with options
+
+Configure your screenshot with full control over the output:
+
+```php
+<?php
+declare(strict_types=1);
+
+require_once 'vendor/autoload.php';
+
+use Screenshothis\Screenshothis;
+use Screenshothis\Screenshothis\Models\Operations;
+
+$sdk = Screenshothis\Screenshothis::builder()->build();
+
+try {
+    $request = new Operations\TakeScreenshotRequest(
+        apiKey: 'ss_test_1234567890abcdef',
+        url: 'https://github.com',
+
+        // Image settings
+        format: Operations\Format::Png,
+        quality: 90,
+        width: 1920,
+        height: 1080,
+
+        // Content blocking
+        blockAds: true,
+        blockCookieBanners: true,
+        blockTrackers: true,
+        blockResources: [
+            Operations\BlockResource::Script,
+            Operations\BlockResource::Image,
+            Operations\BlockResource::Stylesheet
+        ],
+
+        // Browser preferences
+        prefersColorScheme: Operations\PrefersColorScheme::Dark,
+        prefersReducedMotion: Operations\PrefersReducedMotion::Reduce,
+
+        // Device simulation
+        isMobile: false,
+        isLandscape: true,
+        hasTouch: false,
+        deviceScaleFactor: 2.0,
+
+        // Advanced options
+        selector: '#main-content',
+        bypassCsp: true,
+        cacheKey: 'homepage-desktop-dark',
+        headers: "User-Agent: MyApp/1.0\nX-Custom-Header: value"
+    );
+
+    $response = $sdk->takeScreenshot($request);
+
+    if ($response->twoHundredImagePngBytes !== null) {
+        file_put_contents('advanced-screenshot.png', $response->twoHundredImagePngBytes);
+        echo "Advanced screenshot saved!\n";
+    }
+} catch (Exception $e) {
+    echo "Failed to capture screenshot: " . $e->getMessage() . "\n";
+}
+```
+
+## Comprehensive error handling
+
+The SDK provides specific exception types for different failure scenarios:
+
+### Basic error handling
+
+Handle common errors with try-catch blocks:
+
+```php
+<?php
+declare(strict_types=1);
+
+require_once 'vendor/autoload.php';
+
+use Screenshothis\Screenshothis;
+use Screenshothis\Screenshothis\Models\Operations;
+use Screenshothis\Screenshothis\Models\Errors;
+
+$sdk = Screenshothis\Screenshothis::builder()->build();
+
+try {
+    $request = new Operations\TakeScreenshotRequest(
+        apiKey: 'ss_test_1234567890abcdef',
+        url: 'https://example.com'
+    );
+
+    $response = $sdk->takeScreenshot($request);
+
+    if ($response->twoHundredImageJpegBytes !== null) {
+        file_put_contents('screenshot.jpg', $response->twoHundredImageJpegBytes);
+        echo "Screenshot saved successfully!\n";
+    }
+
+} catch (Errors\ForbiddenExceptionThrowable $e) {
+    echo "API Error: Quota exceeded\n";
+    echo "Request ID: " . $e->container->requestId . "\n";
+    echo "Error: " . $e->container->error . "\n";
+    // Maybe show upgrade prompt to user
+
+} catch (Errors\InternalServerErrorThrowable $e) {
+    echo "Server Error: " . $e->container->message . "\n";
+    echo "Request ID: " . $e->container->requestId . "\n";
+    echo "Error Code: " . $e->container->code . "\n";
+    // Implement retry logic with exponential backoff
+
+} catch (Errors\APIException $e) {
+    echo "API Exception: " . $e->getMessage() . "\n";
+    echo "Status Code: " . $e->getCode() . "\n";
+    echo "Response Body: " . $e->body . "\n";
+
+} catch (Exception $e) {
+    echo "Unexpected error: " . $e->getMessage() . "\n";
+}
+```
+
+### Exception types reference
+
+| Exception Type | Status Code | When it occurs | How to handle |
+|------------|-------------|----------------|---------------|
+| `ForbiddenExceptionThrowable` | 403 | API quota exceeded or invalid key | Check your quota and key validity |
+| `InternalServerErrorThrowable` | 500 | Server-side error | Retry with exponential backoff |
+| `APIException` | Various | General API errors | Check error message for details |
+
+<Warning>
+Always implement error handling in production applications. Use the `requestId` from error responses when contacting support.
+</Warning>
+
+## Advanced configuration
+
+### Custom server URL
+
+Override the default API endpoint for self-hosted instances:
+
+```php
+<?php
+use Screenshothis\Screenshothis;
+
+$sdk = Screenshothis\Screenshothis::builder()
+    ->setServerURL('https://your-instance.example.com')
+    ->build();
+```
+
+### Custom HTTP client configuration
+
+Configure custom HTTP client behavior:
+
+```php
+<?php
+use Screenshothis\Screenshothis;
+use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+
+// Create custom HTTP client with middleware
+$stack = HandlerStack::create();
+
+// Add logging middleware
+$stack->push(Middleware::log(
+    new Logger('screenshothis'),
+    new MessageFormatter('{method} {uri} - {code} {phrase}')
+));
+
+// Add retry middleware
+$stack->push(Middleware::retry(
+    function ($retries, $request, $response = null, $exception = null) {
+        return $retries < 3 && ($exception !== null || ($response && $response->getStatusCode() >= 500));
+    },
+    function ($retries) {
+        return 1000 * pow(2, $retries); // Exponential backoff
+    }
+));
+
+$httpClient = new Client([
+    'handler' => $stack,
+    'timeout' => 30,
+    'connect_timeout' => 10,
+]);
+
+$sdk = Screenshothis\Screenshothis::builder()
+    ->setClient($httpClient)
+    ->build();
+```
+
+## Real-world examples
+
+### Laravel integration
+
+Create a Laravel service for screenshot functionality:
+
+```php
+<?php
+
+namespace App\Services;
+
+use Screenshothis\Screenshothis;
+use Screenshothis\Screenshothis\Models\Operations;
+use Screenshothis\Screenshothis\Models\Errors;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+
+class ScreenshotService
+{
+    private Screenshothis $sdk;
+
+    public function __construct()
+    {
+        $this->sdk = Screenshothis\Screenshothis::builder()
+            ->setServerURL(config('screenshothis.server_url', 'https://api.screenshothis.com'))
+            ->build();
+    }
+
+    public function captureWebsite(
+        string $url,
+        array $options = []
+    ): array {
+        try {
+            $request = new Operations\TakeScreenshotRequest(
+                apiKey: config('screenshothis.api_key'),
+                url: $url,
+                format: $options['format'] ?? Operations\Format::Webp,
+                quality: $options['quality'] ?? 85,
+                width: $options['width'] ?? 1920,
+                height: $options['height'] ?? 1080,
+                blockAds: $options['block_ads'] ?? true,
+                prefersColorScheme: $options['theme'] === 'dark'
+                    ? Operations\PrefersColorScheme::Dark
+                    : Operations\PrefersColorScheme::Light,
+                selector: $options['selector'] ?? null,
+                cacheKey: $options['cache_key'] ?? null
+            );
+
+            $response = $this->sdk->takeScreenshot($request);
+
+            // Determine the image data based on format
+            $imageData = match($options['format'] ?? 'webp') {
+                'png' => $response->twoHundredImagePngBytes,
+                'jpeg', 'jpg' => $response->twoHundredImageJpegBytes,
+                default => $response->twoHundredImageWebpBytes,
+            };
+
+            if ($imageData === null) {
+                throw new \Exception('No image data received from API');
+            }
+
+            // Save to storage
+            $filename = $this->generateFilename($url, $options['format'] ?? 'webp');
+            $path = "screenshots/{$filename}";
+
+            Storage::put($path, $imageData);
+
+            return [
+                'success' => true,
+                'path' => $path,
+                'url' => Storage::url($path),
+                'size' => strlen($imageData),
+                'format' => $options['format'] ?? 'webp'
+            ];
+
+        } catch (Errors\ForbiddenExceptionThrowable $e) {
+            Log::error('Screenshot API quota exceeded', [
+                'url' => $url,
+                'request_id' => $e->container->requestId,
+                'error' => $e->container->error
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'API quota exceeded',
+                'request_id' => $e->container->requestId
+            ];
+
+        } catch (Errors\InternalServerErrorThrowable $e) {
+            Log::error('Screenshot API server error', [
+                'url' => $url,
+                'request_id' => $e->container->requestId,
+                'code' => $e->container->code,
+                'message' => $e->container->message
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Server error occurred',
+                'request_id' => $e->container->requestId
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Screenshot capture failed', [
+                'url' => $url,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Screenshot capture failed'
+            ];
+        }
+    }
+
+    private function generateFilename(string $url, string $format): string
+    {
+        $domain = parse_url($url, PHP_URL_HOST);
+        $timestamp = now()->format('Y-m-d_H-i-s');
+        $hash = substr(md5($url), 0, 8);
+
+        return "{$domain}_{$timestamp}_{$hash}.{$format}";
+    }
+}
+```
+
+### Batch processing with queue
+
+Process multiple URLs efficiently using Laravel queues:
+
+```php
+<?php
+
+namespace App\Jobs;
+
+use App\Services\ScreenshotService;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+
+class ProcessScreenshotBatch implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $tries = 3;
+    public $backoff = [60, 120, 300]; // Retry after 1, 2, then 5 minutes
+
+    public function __construct(
+        private array $urls,
+        private array $options = [],
+        private ?string $userId = null
+    ) {}
+
+    public function handle(ScreenshotService $screenshotService): void
+    {
+        $results = [];
+        $successful = 0;
+        $failed = 0;
+
+        foreach ($this->urls as $url) {
+            try {
+                // Add delay between requests to respect rate limits
+                if ($successful + $failed > 0) {
+                    sleep(1);
+                }
+
+                $result = $screenshotService->captureWebsite($url, $this->options);
+                $results[] = array_merge($result, ['url' => $url]);
+
+                if ($result['success']) {
+                    $successful++;
+                } else {
+                    $failed++;
+                }
+
+            } catch (\Exception $e) {
+                Log::error('Batch screenshot job failed for URL', [
+                    'url' => $url,
+                    'error' => $e->getMessage(),
+                    'user_id' => $this->userId
+                ]);
+
+                $results[] = [
+                    'url' => $url,
+                    'success' => false,
+                    'error' => 'Processing failed'
+                ];
+                $failed++;
+            }
+        }
+
+        Log::info('Screenshot batch completed', [
+            'total' => count($this->urls),
+            'successful' => $successful,
+            'failed' => $failed,
+            'user_id' => $this->userId
+        ]);
+
+        // Optionally notify user of completion
+        if ($this->userId) {
+            // Send notification to user
+        }
+    }
+}
+```
+
+### Symfony integration
+
+Create a Symfony service for screenshot functionality:
+
+```php
+<?php
+
+namespace App\Service;
+
+use Screenshothis\Screenshothis;
+use Screenshothis\Screenshothis\Models\Operations;
+use Screenshothis\Screenshothis\Models\Errors;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+
+class ScreenshotService
+{
+    private Screenshothis $sdk;
+
+    public function __construct(
+        #[Autowire('%env(SCREENSHOTHIS_API_KEY)%')] private string $apiKey,
+        #[Autowire('%env(SCREENSHOTHIS_SERVER_URL)%')] private string $serverUrl,
+        private LoggerInterface $logger
+    ) {
+        $this->sdk = Screenshothis\Screenshothis::builder()
+            ->setServerURL($this->serverUrl)
+            ->build();
+    }
+
+    public function capture(string $url, array $options = []): array
+    {
+        try {
+            $request = new Operations\TakeScreenshotRequest(
+                apiKey: $this->apiKey,
+                url: $url,
+                format: $this->parseFormat($options['format'] ?? 'webp'),
+                quality: $options['quality'] ?? 85,
+                width: $options['width'] ?? 1920,
+                height: $options['height'] ?? 1080,
+                blockAds: $options['block_ads'] ?? true,
+                selector: $options['selector'] ?? null
+            );
+
+            $response = $this->sdk->takeScreenshot($request);
+
+            $imageData = $this->extractImageData($response, $options['format'] ?? 'webp');
+
+            if ($imageData === null) {
+                throw new \RuntimeException('No image data received');
+            }
+
+            return [
+                'success' => true,
+                'data' => $imageData,
+                'size' => strlen($imageData),
+                'content_type' => $this->getContentType($options['format'] ?? 'webp')
+            ];
+
+        } catch (Errors\ForbiddenExceptionThrowable $e) {
+            $this->logger->error('Screenshot API quota exceeded', [
+                'url' => $url,
+                'request_id' => $e->container->requestId
+            ]);
+
+            return ['success' => false, 'error' => 'Quota exceeded'];
+
+        } catch (Errors\APIException $e) {
+            $this->logger->error('Screenshot API error', [
+                'url' => $url,
+                'status_code' => $e->getCode(),
+                'message' => $e->getMessage()
+            ]);
+
+            return ['success' => false, 'error' => 'API error'];
+        }
+    }
+
+    private function parseFormat(string $format): Operations\Format
+    {
+        return match(strtolower($format)) {
+            'png' => Operations\Format::Png,
+            'jpeg', 'jpg' => Operations\Format::Jpeg,
+            'webp' => Operations\Format::Webp,
+            default => Operations\Format::Webp,
+        };
+    }
+
+    private function extractImageData($response, string $format): ?string
+    {
+        return match(strtolower($format)) {
+            'png' => $response->twoHundredImagePngBytes,
+            'jpeg', 'jpg' => $response->twoHundredImageJpegBytes,
+            default => $response->twoHundredImageWebpBytes,
+        };
+    }
+
+    private function getContentType(string $format): string
+    {
+        return match(strtolower($format)) {
+            'png' => 'image/png',
+            'jpeg', 'jpg' => 'image/jpeg',
+            'webp' => 'image/webp',
+            default => 'image/webp',
+        };
+    }
+}
+```
+
+### WordPress plugin integration
+
+Create a WordPress plugin service:
+
+```php
+<?php
+
+class ScreenshotThisPlugin
+{
+    private $sdk;
+
+    public function __construct()
+    {
+        require_once plugin_dir_path(__FILE__) . 'vendor/autoload.php';
+
+        $this->sdk = \Screenshothis\Screenshothis::builder()
+            ->setServerURL(get_option('screenshothis_server_url', 'https://api.screenshothis.com'))
+            ->build();
+
+        add_action('wp_ajax_take_screenshot', [$this, 'handleScreenshotRequest']);
+        add_action('wp_ajax_nopriv_take_screenshot', [$this, 'handleScreenshotRequest']);
+    }
+
+    public function handleScreenshotRequest(): void
+    {
+        if (!wp_verify_nonce($_POST['nonce'], 'screenshot_nonce')) {
+            wp_die('Security check failed');
+        }
+
+        $url = sanitize_url($_POST['url'] ?? '');
+        if (empty($url)) {
+            wp_send_json_error('URL is required');
+        }
+
+        try {
+            $request = new \Screenshothis\Screenshothis\Models\Operations\TakeScreenshotRequest(
+                apiKey: get_option('screenshothis_api_key'),
+                url: $url,
+                format: \Screenshothis\Screenshothis\Models\Operations\Format::Webp,
+                quality: 85,
+                width: 1200,
+                height: 800,
+                blockAds: true
+            );
+
+            $response = $this->sdk->takeScreenshot($request);
+
+            if ($response->twoHundredImageWebpBytes !== null) {
+                // Save to WordPress uploads directory
+                $upload_dir = wp_upload_dir();
+                $filename = 'screenshot-' . time() . '.webp';
+                $filepath = $upload_dir['path'] . '/' . $filename;
+
+                file_put_contents($filepath, $response->twoHundredImageWebpBytes);
+
+                wp_send_json_success([
+                    'image_url' => $upload_dir['url'] . '/' . $filename,
+                    'file_size' => strlen($response->twoHundredImageWebpBytes)
+                ]);
+            } else {
+                wp_send_json_error('Failed to capture screenshot');
+            }
+
+        } catch (Exception $e) {
+            error_log('Screenshot capture failed: ' . $e->getMessage());
+            wp_send_json_error('Screenshot capture failed');
+        }
+    }
+}
+
+new ScreenshotThisPlugin();
+```
+
+## Health monitoring
+
+The SDK includes health check endpoints for monitoring your application:
+
+```php
+<?php
+use Screenshothis\Screenshothis;
+
+$sdk = Screenshothis\Screenshothis::builder()->build();
+
+// Comprehensive health check
+try {
+    $healthResponse = $sdk->health();
+
+    if ($healthResponse->healthCheck !== null) {
+        $health = $healthResponse->healthCheck;
+        echo "Status: " . $health->status . "\n";
+        echo "Uptime: " . $health->uptime . " seconds\n";
+        echo "Version: " . $health->version . "\n";
+
+        foreach ($health->checks as $check) {
+            echo "- {$check->name}: {$check->status} ({$check->duration}ms)\n";
+        }
+    }
+} catch (Exception $e) {
+    echo "Health check failed: " . $e->getMessage() . "\n";
+}
+
+// Quick readiness check
+try {
+    $readyResponse = $sdk->ready();
+    echo "Service is ready\n";
+} catch (Exception $e) {
+    echo "Service not ready: " . $e->getMessage() . "\n";
+}
+
+// Liveness probe
+try {
+    $liveResponse = $sdk->live();
+    echo "Service is alive\n";
+} catch (Exception $e) {
+    echo "Service not alive: " . $e->getMessage() . "\n";
+}
+```
+
+## Best practices
+
+<AccordionGroup>
+<Accordion title="Performance optimization" icon="rocket">
+- Use appropriate image formats: WebP for modern browsers, JPEG for smaller sizes, PNG for transparency
+- Implement proper caching strategies using the `cacheKey` parameter
+- Consider image quality vs file size trade-offs (80-90 quality range is often optimal)
+- Batch multiple requests efficiently with proper rate limiting
+- Use specific selectors to capture only needed content
+</Accordion>
+
+<Accordion title="Error handling" icon="shield">
+- Always wrap API calls in try-catch blocks with specific exception handling
+- Implement retry logic with exponential backoff for transient failures
+- Log request IDs from error responses for debugging and support
+- Provide fallback options when screenshots fail
+- Monitor API quota usage to prevent service disruptions
+</Accordion>
+
+<Accordion title="Security considerations" icon="lock">
+- API keys use domain whitelisting—safe to commit to version control
+- Configure allowed domains in your dashboard to control key usage
+- Validate and sanitize URLs before sending to the API
+- Implement rate limiting in your own applications
+- Use environment variables for API keys in production
+</Accordion>
+
+<Accordion title="Memory management" icon="cpu">
+- Handle large image data efficiently using streaming when possible
+- Clean up temporary files and resources after processing
+- Monitor memory usage in batch processing scenarios
+- Consider using generators for processing large datasets
+- Implement proper garbage collection in long-running processes
+</Accordion>
+</AccordionGroup>
+
+## Configuration reference
+
+### Image formats
+
+| Format | Use case | Pros | Cons |
+|--------|----------|------|------|
+| JPEG | General purpose, photos | Smaller file size, wide support | No transparency, lossy compression |
+| PNG | Screenshots with transparency | Lossless, transparency support | Larger file sizes |
+| WebP | Modern applications | Best compression, transparency | Limited older browser support |
+
+### Block resources
+
+Available resource types to block during screenshot capture:
+
+- `Operations\BlockResource::Document` - HTML documents
+- `Operations\BlockResource::Stylesheet` - CSS stylesheets
+- `Operations\BlockResource::Image` - Images
+- `Operations\BlockResource::Media` - Audio/video media
+- `Operations\BlockResource::Font` - Web fonts
+- `Operations\BlockResource::Script` - JavaScript files
+- `Operations\BlockResource::Xhr` - XMLHttpRequest calls
+- `Operations\BlockResource::Fetch` - Fetch API requests
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Explore all available API parameters and response formats
+  </Card>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Get started with basic screenshot capture in minutes
+  </Card>
+  <Card title="Self-hosting" icon="server" href="/self-host">
+    Run Screenshothis on your own infrastructure
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/screenshothis/screenshothis-php">
+    View source code, report issues, or contribute
+  </Card>
+</CardGroup>
