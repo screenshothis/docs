@@ -7,11 +7,6 @@ servers:
   - url: "https://api.screenshothis.com"
     description: "Production Server"
 components:
-  securitySchemes:
-    "ApiKeyQuery":
-      type: "apiKey"
-      in: "query"
-      name: "api_key"
   schemas:
     "HealthCheck":
       type: "object"
@@ -69,7 +64,9 @@ components:
         - "checks"
       description: "Performs a comprehensive health check of all critical system components including database connectivity, storage availability, job queue status, and S3 functionality. Returns detailed status information for monitoring and alerting systems."
       examples:
-        - {"status": "healthy", "timestamp": "2024-01-01T00:00:00.000Z", "uptime": 3600, "checks": [{"name": "database", "status": "pass", "duration": 10}], "version": "1.0.0"}
+        - {"status": "healthy", "timestamp": "2024-01-01T00:00:00.000Z", "uptime": 3600, "checks": [{"name": "database", "status": "pass", "duration": 12}, {"name": "storage", "status": "pass", "duration": 25}, {"name": "queue", "status": "pass", "duration": 8, "details": {"waiting": 2, "active": 1, "completed": 1543, "failed": 0, "workerRunning": true}}, {"name": "s3", "status": "pass", "duration": 156}], "version": "1.0.0"}
+        - {"status": "degraded", "timestamp": "2024-01-01T00:00:00.000Z", "uptime": 3600, "checks": [{"name": "database", "status": "pass", "duration": 15}, {"name": "storage", "status": "fail", "duration": 5000, "error": "Connection timeout"}, {"name": "queue", "status": "pass", "duration": 12}, {"name": "s3", "status": "pass", "duration": 200}], "version": "1.0.0"}
+        - {"status": "unhealthy", "timestamp": "2024-01-01T00:00:00.000Z", "uptime": 3600, "checks": [{"name": "database", "status": "fail", "duration": 5000, "error": "Connection refused"}, {"name": "storage", "status": "fail", "duration": 5000, "error": "Storage unavailable"}, {"name": "queue", "status": "fail", "duration": 100, "error": "Queue worker not responding"}, {"name": "s3", "status": "fail", "duration": 3000, "error": "S3 access denied"}], "version": "1.0.0"}
 paths:
   "/v1/screenshots/take":
     get:
@@ -410,6 +407,45 @@ paths:
             }
 
             run();
+        - lang: php
+          label: PHP (SDK)
+          source: |-
+            declare(strict_types=1);
+
+            require 'vendor/autoload.php';
+
+            use Screenshothis\Screenshothis;
+            use Screenshothis\Screenshothis\Models\Operations;
+
+            $sdk = Screenshothis\Screenshothis::builder()->build();
+
+            $request = new Operations\TakeScreenshotRequest(
+                apiKey: 'sk_live_abcdef1234567890abcdef1234567890',
+                url: 'https://example.com',
+                selector: '.main-content',
+                blockRequests: '*.doubleclick.net\n' .
+                '*.googletagmanager.com\n' .
+                '*/analytics/*',
+                blockResources: [
+                    Operations\BlockResource::Script,
+                    Operations\BlockResource::Stylesheet,
+                    Operations\BlockResource::Font,
+                ],
+                cacheKey: 'homepage-desktop-light',
+                headers: 'User-Agent: MyBot/1.0\n' .
+                'Authorization: Bearer token123\n' .
+                'X-Custom-Header: value',
+                cookies: 'session_id=abc123; Domain=example.com; Path=/; Secure\n' .
+                'user_pref=dark_mode; Max-Age=3600',
+            );
+
+            $response = $sdk->takeScreenshot(
+                request: $request
+            );
+
+            if ($response->twoHundredImageJpegBytes !== null) {
+                // handle response
+            }
   "/health":
     get:
       operationId: "health"
@@ -443,6 +479,26 @@ paths:
             }
 
             run();
+        - lang: php
+          label: PHP (SDK)
+          source: |-
+            declare(strict_types=1);
+
+            require 'vendor/autoload.php';
+
+            use Screenshothis\Screenshothis;
+
+            $sdk = Screenshothis\Screenshothis::builder()->build();
+
+
+
+            $response = $sdk->health(
+
+            );
+
+            if ($response->healthCheck !== null) {
+                // handle response
+            }
   "/health/ready":
     get:
       operationId: "ready"
@@ -465,6 +521,7 @@ paths:
                 required:
                   - "status"
                   - "timestamp"
+              example: {"status": "ready", "timestamp": "2024-01-01T00:00:00.000Z"}
         "503":
           description: "Service is not ready"
           content:
@@ -484,6 +541,7 @@ paths:
                   - "status"
                   - "timestamp"
                   - "error"
+              example: {"status": "not ready", "timestamp": "2024-01-01T00:00:00.000Z", "error": "Database connection failed"}
       x-speakeasy-group: "health"
       x-speakeasy-name-override: "getReady"
       x-codeSamples:
@@ -501,6 +559,26 @@ paths:
             }
 
             run();
+        - lang: php
+          label: PHP (SDK)
+          source: |-
+            declare(strict_types=1);
+
+            require 'vendor/autoload.php';
+
+            use Screenshothis\Screenshothis;
+
+            $sdk = Screenshothis\Screenshothis::builder()->build();
+
+
+
+            $response = $sdk->ready(
+
+            );
+
+            if ($response->object !== null) {
+                // handle response
+            }
   "/health/live":
     get:
       operationId: "live"
@@ -523,6 +601,7 @@ paths:
                 required:
                   - "status"
                   - "timestamp"
+              example: {"status": "alive", "timestamp": "2024-01-01T00:00:00.000Z"}
         "503":
           description: "Service is not alive"
           content:
@@ -542,6 +621,7 @@ paths:
                   - "status"
                   - "timestamp"
                   - "error"
+              example: {"status": "not alive", "timestamp": "2024-01-01T00:00:00.000Z", "error": "Application unresponsive"}
       x-speakeasy-group: "health"
       x-speakeasy-name-override: "getLive"
       x-codeSamples:
@@ -559,4 +639,24 @@ paths:
             }
 
             run();
+        - lang: php
+          label: PHP (SDK)
+          source: |-
+            declare(strict_types=1);
+
+            require 'vendor/autoload.php';
+
+            use Screenshothis\Screenshothis;
+
+            $sdk = Screenshothis\Screenshothis::builder()->build();
+
+
+
+            $response = $sdk->live(
+
+            );
+
+            if ($response->object !== null) {
+                // handle response
+            }
 x-speakeasy-retries: {"strategy": "backoff", "backoff": {"initialInterval": 500, "maxInterval": 60000, "maxElapsedTime": 3600000, "exponent": 1.5}, "statusCodes": ["5XX"], "retryConnectionErrors": true}
