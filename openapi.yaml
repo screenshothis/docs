@@ -67,9 +67,13 @@ components:
         - "timestamp"
         - "uptime"
         - "checks"
+      description: "Performs a comprehensive health check of all critical system components including database connectivity, storage availability, job queue status, and S3 functionality. Returns detailed status information for monitoring and alerting systems."
+      examples:
+        - {"status": "healthy", "timestamp": "2024-01-01T00:00:00.000Z", "uptime": 3600, "checks": [{"name": "database", "status": "pass", "duration": 10}], "version": "1.0.0"}
 paths:
   "/v1/screenshots/take":
     get:
+      operationId: "takeScreenshot"
       summary: "Generate optimized website screenshot"
       description: "Captures high-quality screenshots of websites with advanced optimization features including smart caching, CDN integration, request deduplication, and quota management. Supports multiple image formats (JPEG, PNG, WebP) with customizable dimensions, device emulation, and viewport settings. Implements efficient S3 streaming for large images and conditional requests for optimal performance."
       parameters:
@@ -325,14 +329,17 @@ paths:
               schema:
                 type: "string"
                 format: "binary"
+                example: "<binary JPEG image data>"
             "image/png":
               schema:
                 type: "string"
                 format: "binary"
+                example: "<binary PNG image data>"
             "image/webp":
               schema:
                 type: "string"
                 format: "binary"
+                example: "<binary WebP image data>"
         "304":
           description: "Not Modified - Content hasn't changed"
         "403":
@@ -349,6 +356,7 @@ paths:
                 required:
                   - "error"
                   - "requestId"
+              example: {"error": "Quota exceeded for this billing period", "requestId": "req_1234567890abcdef"}
         "500":
           description: "Internal server error"
           content:
@@ -366,6 +374,7 @@ paths:
                   - "requestId"
                   - "message"
                   - "code"
+              example: {"requestId": "req_1234567890abcdef", "message": "Screenshot generation failed", "code": "SCREENSHOT_ERROR"}
       x-speakeasy-group: "screenshots"
       x-speakeasy-name-override: "take"
       x-codeSamples:
@@ -403,6 +412,7 @@ paths:
             run();
   "/health":
     get:
+      operationId: "health"
       summary: "Comprehensive health check"
       description: "Performs a comprehensive health check of all critical system components including database connectivity, storage availability, job queue status, and S3 functionality. Returns detailed status information for monitoring and alerting systems."
       responses:
@@ -435,6 +445,7 @@ paths:
             run();
   "/health/ready":
     get:
+      operationId: "ready"
       summary: "Readiness probe"
       description: "Kubernetes-compatible readiness probe that verifies the service is ready to accept traffic. Checks database connectivity to ensure the service can handle requests. Used by orchestrators to determine when to route traffic to this instance."
       responses:
@@ -492,6 +503,7 @@ paths:
             run();
   "/health/live":
     get:
+      operationId: "live"
       summary: "Liveness probe"
       description: "Kubernetes-compatible liveness probe that indicates whether the service is alive and functioning. This lightweight check verifies the application is responsive and should be used by orchestrators to determine if the container needs to be restarted."
       responses:
